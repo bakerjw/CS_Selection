@@ -11,31 +11,23 @@
 % ground motions based on a flag set by the user. The single arbitrary 
 % ground motion component is used for two-dimensional structural models and
 % two-component ground motions are used for three-dimensional structural 
-% models, as described in Jayaram et al. (2010). Therefore, this code may 
-% be used for two-dimensional and three-dimensional structural models. 
+% models, as described in Jayaram et al. (2011). 
 %
-% Nirmal Jayaram, Ting Lin, Jack W. Baker
-% Department of Civil and Environmental Engineering
-% Stanford University
+% created by Nirmal Jayaram, Ting Lin, Jack W. Baker
 % Last Updated: 7 June 2010 
+%
+% modified by Cynthia Lee and Jack Baker
 % Modified 4/23/2015
 % Modified 7/7/2015 (Spring & Summer 2015)
 %
 % Referenced manuscripts:
 %
-% N. Jayaram, T. Lin and and Baker, J. W. (2010). A computationally
+% N. Jayaram, T. Lin and and Baker, J. W. (2011). A computationally
 % efficient ground-motion selection algorithm for matching a target
-% response spectrum mean and variance, Earthquake Spectra, (in press).
+% response spectrum mean and variance, Earthquake Spectra, 27(3), 797-815.
 %
-% N. Jayaram and Baker, J. W. (2010). Ground-motion selection for PEER
-% Transportation Systems Research Program, 7th CUEE and 5th ICEE Joint
-% Conference, Tokyo, Japan.
-%
-% J. W. Baker and Jayaram, N. (2008). Correlation of spectral acceleration
-% values from NGA ground motion models, Earthquake Spectra, 24 (1), 299-317
-%
-% Baker, J.W. (2010). The Conditional Mean Spectrum: A tool for ground
-% motion selection, ASCE Journal of Structural Engineering, (in press).
+% Baker, J.W. (2011). The Conditional Mean Spectrum: A tool for ground
+% motion selection, ASCE Journal of Structural Engineering, 137(3), 322-331.
 %
 
 %% OUTPUT VARIABLES
@@ -50,7 +42,7 @@
 
 %% Load workspace containing ground-motion information. 
 % Based on a user flag, either NGA or NGA W2 database is used. 
-% Documentation of either database workspace ('rec_selection_meta_data.mat'
+% Documentation of either database workspace ('NGA_W1_meta_data.mat'
 % or 'NGA_W2_meta_data.mat') can be found at 'WorkspaceDocumentation.m'.
 % For an alternate database, the minimum information to be provided
 % includes the pseudo-acceleration spectra of the available, ground
@@ -59,7 +51,7 @@
 % This cell can be modified by the user if desired.
 %
 % Variable definitions for loading data:
-% data      : 0 to load rec_selection_meta_data
+% data      : 0 to load NGA_W1_meta_data
 %             1 to run NGA_W2_meta_data
 % cond      : 0 to run unconditional selection
 %             1 to run conditional
@@ -189,10 +181,9 @@ showPlots            = 1;
 % model. The user can change the ground-motion model as long as any
 % additional information that may be required by the new model is provided.
 
-% Please refer to Baker (2010) for details on the conditional mean spectrum
-% method which is used for obtaining the target means and covariances in
-% this example. Alternately, the details are summarized in Jayaram et al.
-% (2010). ***Edit: add documentation for unconditional selection***
+% Please refer to Jayaram et al.(2011) Baker (2011) for details on the 
+% method that is used for obtaining the target means and covariances in
+% this example. 
 
 % The code provides the user an option to not match the target variance.
 % This is done by setting the target variance to zero so that each selected
@@ -231,9 +222,8 @@ Rjb         = R_bar; % Can be modified by the user
 
 % User inputs end here
 
-%% Advanced user inputs (optional) 
-% The script will run with these default values, but the user has the
-% option to change them.
+%% Advanced user inputs  
+% Most users will likely keep these default values
 optInputs.isScaled   = 1;
 optInputs.maxScale   = 4;
 optInputs.weights    = [1.0 2.0];
@@ -253,7 +243,7 @@ seedValue            = 1; % default will be set to 0
 %% Load the user-chosen database and format according to type of selection
 % SaKnown can be modified as a user input
 if data == 0
-    load rec_selection_meta_data 
+    load NGA_W1_meta_data 
 elseif data == 1
     load NGA_W2_meta_data
 end
@@ -272,6 +262,11 @@ elseif arb == 2 && RotD == 50
 elseif arb == 2 && RotD == 100 && data == 1 % for the NGA-W2 database only
     SaKnown     = Sa_RotD100;
     Filename    = Filename_1;
+else
+    % print an error message and stop if one of the above combinations was
+    % not specified
+    fprintf('Error--selected values of ''arb'', ''RotD'' and/or ''data'' are not valid \n\n')
+    break
 end
 
 % Create variable for known periods
@@ -301,13 +296,13 @@ for i=1:length(optInputs.PerTgt)
     [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
 end
 
-% remove any repeated values from PerTgt (occurs with conditional
-% selection)
+% remove any repeated values from PerTgt (this can occur if the specified
+% conditioning period matches a period already in perKnown)
 recPer = unique(recPer);
 optInputs.PerTgt = perKnown(recPer);
 numPer = length(recPer);
 
-% Screen the records to be considered
+% Screen the records to be considered (TODO: make ranges user-specified)
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
 recValidSoil = (soil_Vs30 > 200 | soil_Vs30 < 500); % Site condition limits 
 recValidMag = magnitude > 5.5; % magnitude limits 
@@ -410,7 +405,7 @@ end
 
 % Setting initial seed for simulation
 if seedValue ~= 0
-    rng(seedValue);
+    rng(seedValue); % intialize to the specified seed, for repeability
 else
     rng('shuffle');
 end
@@ -427,7 +422,7 @@ for j=1:nTrials
                      (optInputs.weights(1)+optInputs.weights(2)) * sum(devSkewSim.^2);
 end
 
-[tmp recUse] = min(abs(devTotalSim));
+[tmp, recUse] = min(abs(devTotalSim));
 gm = gmCell{recUse};
 
 %% Find best matches to the simulated spectra from ground-motion database
@@ -448,15 +443,11 @@ for i = 1:optInputs.nGM
         
         elseif optInputs.isScaled == 1
             if optInputs.cond == 1
-                scaleFac(j) = exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1));
+                scaleFac(j) = min(optInputs.maxScale, exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1)));
             elseif optInputs.cond == 0
-                scaleFac(j) = sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2);
+                scaleFac(j) = min(optInputs.maxScale, sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2));
             end  
-            if (scaleFac(j) > optInputs.maxScale)
-                err(j) = 1000000;
-            else
-                err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
-            end
+            err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
         else
             err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
             if err(j) == inf                
@@ -650,7 +641,7 @@ if (checkCorr)
     end
 end
 
-%% Output data to file (best viewed with textpad)
+%% Output data to file (best viewed with a text editor)
 % output http://ngawest2.berkeley.edu/ for NGA-W2 -- check that tool works
 % for input record numbers 
 
@@ -663,17 +654,10 @@ end
 
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
-    if data == 0 && arb == 1
-        url = ['http://peer.berkeley.edu/nga_files/ath/' Filename{rec}(1:end-3) 'AT2']; % URL of selected record
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},url); % Print relevant outputs
-    elseif data == 0 && arb == 2
-        url1 = ['http://peer.berkeley.edu/nga_files/ath/' Filename_1{rec}(1:end-3) 'AT2'];
-        url2 = ['http://peer.berkeley.edu/nga_files/ath/' Filename_2{rec}(1:end-3) 'AT2'];
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},url1,url2);
-    elseif data == 1 && arb == 1
-        fprintf(fin,'%d , %d , %6.2f , %s , %s \n',i,rec,finalScaleFactors(i),Filename_1{rec});
-    elseif data == 1 && arb == 2
-        fprintf(fin,'%d , %d , %6.2f , %s , %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec});
+    if arb == 1
+        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},[dirLocation Filename{rec}]); % Print relevant outputs
+    else 
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},[dirLocation Filename_1{rec}],[dirLocation Filename_2{rec}]);
     end
 end
 
