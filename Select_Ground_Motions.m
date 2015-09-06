@@ -237,6 +237,11 @@ nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
 seedValue            = 1; % default will be set to 0
 
+% Specified ranges for Vs30, magnitude, and distance values, respectively
+allowedVs30          = [200 500];
+allowedMag           = [5.5 inf];
+allowedD             = [0 30];
+
 % PerTgt can be edited for a custom set of periods 
 % Advanced user inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -302,11 +307,11 @@ recPer = unique(recPer);
 optInputs.PerTgt = perKnown(recPer);
 numPer = length(recPer);
 
-% Screen the records to be considered (TODO: make ranges user-specified)
+% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
-recValidSoil = (soil_Vs30 > 200 | soil_Vs30 < 500); % Site condition limits 
-recValidMag = magnitude > 5.5; % magnitude limits 
-recValidDist = closest_D < 30; % distance limits
+recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
+recValidMag = magnitude > allowedMag(1) & magnitude < allowedMag(2);
+recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
 
 % only these records will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
