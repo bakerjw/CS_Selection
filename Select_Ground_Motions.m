@@ -312,12 +312,6 @@ recValidDist = closest_D < 30; % distance limits
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 nAllowed = length(allowedIndex);
 
-% round to lowest 100 for number of records to be searched
-if ~isinteger(nAllowed/100)
-    allowedIndex = allowedIndex(1:100*floor(nAllowed/100));
-    nAllowed = length(allowedIndex);
-end
-
 SaKnown = SaKnown(allowedIndex,:);
 IMs.sampleBig = SaKnown(:,recPer);
 
