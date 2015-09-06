@@ -393,14 +393,11 @@ end
 
 %% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
 % 20 sets of response spectra are simulated and the best set (in terms of
-% matching means, variances and skewness is chosen as the seed). The script
-% is set up to simulate the spectra using Latin Hypercube Sampling, but the
-% user has the option to use a Monte Carlo simulation by changing "lhsnorm"
-% at line 411 to "mvnrnd".The user can also optionally rerun this segment
-% multiple times before deciding to proceed with the rest of the algorithm.
-% It is to be noted, however, that the greedy improvement technique
-% significantly improves the match between the means and the variances
-% subsequently.
+% matching means, variances and skewness is chosen as the seed). The user
+% can also optionally rerun this segment multiple times before deciding to
+% proceed with the rest of the algorithm. It is to be noted, however, that
+% the greedy improvement technique significantly improves the match between
+% the means and the variances subsequently.
 
 % Setting initial seed for simulation
 if seedValue ~= 0
