@@ -446,9 +446,6 @@ for i = 1:optInputs.nGM
             err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
         else
             err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
-            if err(j) == inf                
-               err(j) = 1000000;
-            end
         end
         
       
