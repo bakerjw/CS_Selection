@@ -34,6 +34,8 @@ if showPlots == 1
     xlabel('T_1 (s)');
     ylabel('T_2 (s)');
     colorbar('YLim',[0 1]);
+    set(findall(gcf,'-property','FontSize'),'FontSize',18)
+    set(gca, 'YDir', 'normal')
 end
 
 %% Observed correlations
@@ -56,6 +58,7 @@ if showPlots == 1
     ylabel('T_2 (s)');
     colorbar('YLim',[0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
+    set(gca, 'YDir', 'normal')
 end
 
 %% Error
@@ -71,6 +74,7 @@ if showPlots == 1
     ylabel('T_2 (s)');
     colorbar;
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
+    set(gca, 'YDir', 'normal')
 end
 
 %% contour plot

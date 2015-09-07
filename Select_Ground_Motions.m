@@ -164,7 +164,7 @@ RotD                 = 100;
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 20;
-optInputs.T1         = 100; % for unconditional selection, T1 = 100
+optInputs.T1         = 1.5; % for unconditional selection, T1 = 100
 Tmin                 = 0.1;
 Tmax                 = 10;
 
