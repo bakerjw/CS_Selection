@@ -578,9 +578,9 @@ if (showPlots)
     loglog(perKnown,SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)),'k');
     loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('S_a (g)');
-%     legh = legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
+    xlabel('T (s)');
+    ylabel('S_a (g)');
+    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
     title ('Response spectra of selected ground motions');
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
@@ -592,9 +592,9 @@ if (showPlots)
     loglog(optInputs.PerTgt,exp(IMs.sampleBig(finalRecords,:)).*repmat(finalScaleFactors,1,numPer),'color',[0.5 0.5 0.5],'linewidth',1)
     loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('S_a (g)');
-%     legh = legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
+    xlabel('T (s)');
+    ylabel('S_a (g)');
+    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
     title ('Response spectra of selected ground motions at periods where error is minimized');
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
@@ -605,9 +605,9 @@ if (showPlots)
     loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
     loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('Median S_a (g)');
-%     legh = legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
+    xlabel('T (s)');
+    ylabel('Median S_a (g)');
+    legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
     title('Target and sample exponential logarithmic means (i.e., medians)')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
@@ -618,9 +618,9 @@ if (showPlots)
     semilogx(optInputs.PerTgt, origSigs,'r*','linewidth',2)
     semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('Standard deviation of lnS_a');
-%     legh = legend('Target standard deviation of lnS_a','Standard deviation of originally selected lnS_a','Standard deviation of selected lnS_a');
+    xlabel('T (s)');
+    ylabel('Standard deviation of lnS_a');
+    legend('Target standard deviation of lnS_a','Standard deviation of originally selected lnS_a','Standard deviation of selected lnS_a');
     title('Target and sample logarithmic standard deviations')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
