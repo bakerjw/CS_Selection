@@ -157,10 +157,10 @@
 % Choose data set and type of selection the user should note that the
 % original NGA database does not contain RotD100 values for two-component
 % selection
-data                 = 1;
-optInputs.cond       = 0;
+data                 = 0;
+optInputs.cond       = 1;
 arb                  = 2; 
-RotD                 = 100; 
+RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 20;
@@ -235,7 +235,7 @@ optInputs.tol        = 15;
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
 nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
-seedValue            = 1; % default will be set to 0
+seedValue            = 0; % default will be set to 0
 
 % Specified ranges for Vs30, magnitude, and distance values, respectively
 allowedVs30          = [200 500];
@@ -503,13 +503,11 @@ display(sigErr);
 
 if meanErr > optInputs.tol || sigErr > optInputs.tol 
     [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
-%     finalRecords1 = allowedIndex(finalRecords);
     IMs.sampleSmall = sampleSmall;
     
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
     finalRecords = optInputs.recID;
-%     finalRecords1 = allowedIndex(optInputs.recID);
     finalScaleFactors = finalScaleFac;
 end
 
