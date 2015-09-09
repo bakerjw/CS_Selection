@@ -157,14 +157,14 @@
 % Choose data set and type of selection the user should note that the
 % original NGA database does not contain RotD100 values for two-component
 % selection
-data                 = 1;
-optInputs.cond       = 0;
+data                 = 0;
+optInputs.cond       = 1;
 arb                  = 2; 
-RotD                 = 100; 
+RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 20;
-optInputs.T1         = 100; % for unconditional selection, T1 = 100
+optInputs.T1         = 1.5; % for unconditional selection, T1 = 100
 Tmin                 = 0.1;
 Tmax                 = 10;
 
@@ -235,7 +235,12 @@ optInputs.tol        = 15;
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
 nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
-seedValue            = 1; % default will be set to 0
+seedValue            = 0; % default will be set to 0
+
+% Specified ranges for Vs30, magnitude, and distance values, respectively
+allowedVs30          = [200 500];
+allowedMag           = [5.5 inf];
+allowedD             = [0 30];
 
 % PerTgt can be edited for a custom set of periods 
 % Advanced user inputs end here
@@ -302,21 +307,15 @@ recPer = unique(recPer);
 optInputs.PerTgt = perKnown(recPer);
 numPer = length(recPer);
 
-% Screen the records to be considered (TODO: make ranges user-specified)
+% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
-recValidSoil = (soil_Vs30 > 200 | soil_Vs30 < 500); % Site condition limits 
-recValidMag = magnitude > 5.5; % magnitude limits 
-recValidDist = closest_D < 30; % distance limits
+recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
+recValidMag = magnitude > allowedMag(1) & magnitude < allowedMag(2);
+recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
 
 % only these records will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 nAllowed = length(allowedIndex);
-
-% round to lowest 100 for number of records to be searched
-if ~isinteger(nAllowed/100)
-    allowedIndex = allowedIndex(1:100*floor(nAllowed/100));
-    nAllowed = length(allowedIndex);
-end
 
 SaKnown = SaKnown(allowedIndex,:);
 IMs.sampleBig = SaKnown(:,recPer);
@@ -394,14 +393,11 @@ end
 
 %% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
 % 20 sets of response spectra are simulated and the best set (in terms of
-% matching means, variances and skewness is chosen as the seed). The script
-% is set up to simulate the spectra using Latin Hypercube Sampling, but the
-% user has the option to use a Monte Carlo simulation by changing "lhsnorm"
-% at line 411 to "mvnrnd".The user can also optionally rerun this segment
-% multiple times before deciding to proceed with the rest of the algorithm.
-% It is to be noted, however, that the greedy improvement technique
-% significantly improves the match between the means and the variances
-% subsequently.
+% matching means, variances and skewness is chosen as the seed). The user
+% can also optionally rerun this segment multiple times before deciding to
+% proceed with the rest of the algorithm. It is to be noted, however, that
+% the greedy improvement technique significantly improves the match between
+% the means and the variances subsequently.
 
 % Setting initial seed for simulation
 if seedValue ~= 0
@@ -450,9 +446,6 @@ for i = 1:optInputs.nGM
             err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
         else
             err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
-            if err(j) == inf                
-               err(j) = 1000000;
-            end
         end
         
       
@@ -510,13 +503,11 @@ display(sigErr);
 
 if meanErr > optInputs.tol || sigErr > optInputs.tol 
     [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
-%     finalRecords1 = allowedIndex(finalRecords);
     IMs.sampleSmall = sampleSmall;
     
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
     finalRecords = optInputs.recID;
-%     finalRecords1 = allowedIndex(optInputs.recID);
     finalScaleFactors = finalScaleFac;
 end
 
@@ -585,9 +576,9 @@ if (showPlots)
     loglog(perKnown,SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)),'k');
     loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('S_a (g)');
-%     legh = legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
+    xlabel('T (s)');
+    ylabel('S_a (g)');
+    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
     title ('Response spectra of selected ground motions');
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
@@ -599,9 +590,9 @@ if (showPlots)
     loglog(optInputs.PerTgt,exp(IMs.sampleBig(finalRecords,:)).*repmat(finalScaleFactors,1,numPer),'color',[0.5 0.5 0.5],'linewidth',1)
     loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('S_a (g)');
-%     legh = legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
+    xlabel('T (s)');
+    ylabel('S_a (g)');
+    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
     title ('Response spectra of selected ground motions at periods where error is minimized');
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
@@ -612,9 +603,9 @@ if (showPlots)
     loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
     loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('Median S_a (g)');
-%     legh = legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
+    xlabel('T (s)');
+    ylabel('Median S_a (g)');
+    legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
     title('Target and sample exponential logarithmic means (i.e., medians)')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
@@ -625,9 +616,9 @@ if (showPlots)
     semilogx(optInputs.PerTgt, origSigs,'r*','linewidth',2)
     semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
-%     hx = xlabel('T (s)');
-%     hy = ylabel('Standard deviation of lnS_a');
-%     legh = legend('Target standard deviation of lnS_a','Standard deviation of originally selected lnS_a','Standard deviation of selected lnS_a');
+    xlabel('T (s)');
+    ylabel('Standard deviation of lnS_a');
+    legend('Target standard deviation of lnS_a','Standard deviation of originally selected lnS_a','Standard deviation of selected lnS_a');
     title('Target and sample logarithmic standard deviations')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
