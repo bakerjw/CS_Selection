@@ -53,6 +53,7 @@
 % Variable definitions for loading data:
 % data      : 0 to load NGA_W1_meta_data
 %             1 to run NGA_W2_meta_data
+%             2 to run test spectra from simulated GM
 % cond      : 0 to run unconditional selection
 %             1 to run conditional
 % arb       : 1 for single-component selection and arbitrary component sigma
@@ -157,7 +158,7 @@
 % Choose data set and type of selection the user should note that the
 % original NGA database does not contain RotD100 values for two-component
 % selection
-data                 = 0;
+data                 = 2;
 optInputs.cond       = 1;
 arb                  = 1; 
 RotD                 = 50; 
@@ -207,7 +208,7 @@ showPlots            = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % User inputs begin here
 
-M_bar       = 7;
+M_bar       = 6;
 R_bar       = 10; 
 eps_bar     = 2; % for conditional selection
 Vs30        = 400;
@@ -238,7 +239,7 @@ optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
 seedValue            = 0; % default will be set to 0
 
 % Specified ranges for Vs30, magnitude, and distance values, respectively
-allowedVs30          = [200 500];
+allowedVs30          = [200 900];
 allowedMag           = [5.5 inf];
 allowedD             = [0 30];
 
@@ -251,6 +252,8 @@ if data == 0
     load NGA_W1_meta_data 
 elseif data == 1
     load NGA_W2_meta_data
+elseif data == 2
+    load GM_sim_meta_data
 end
 
 % Format appropriate variables according to single or two-component
