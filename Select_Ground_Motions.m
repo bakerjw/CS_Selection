@@ -159,7 +159,7 @@
 % selection
 data                 = 0;
 optInputs.cond       = 1;
-arb                  = 2; 
+arb                  = 1; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
@@ -409,7 +409,7 @@ end
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
     gmCell{j} = zeros(optInputs.nGM,numPer);
-    gmCell{j}(:,:) = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
+    gmCell{j}(:,:) = exp(mvnrnd(Tgts.meanReq,Tgts.covReq,optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
     devMeanSim = mean(log(gmCell{j})) - Tgts.meanReq;
     devSkewSim = skewness(log(gmCell{j}),1);
     devSigSim = std(log(gmCell{j})) - sqrt(diag(Tgts.covReq))';
