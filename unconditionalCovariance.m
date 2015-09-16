@@ -72,7 +72,7 @@ if showPlots == 1
     title('Difference in the correlation (sample-model)');
     xlabel('T_1 (s)');
     ylabel('T_2 (s)');
-    colorbar;
+    colorbar('YLim', [-1 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     set(gca, 'YDir', 'normal')
 end
