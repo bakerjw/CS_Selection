@@ -636,10 +636,14 @@ if (checkCorr)
 end
 
 %% Output data to file (best viewed with a text editor)
-% output http://ngawest2.berkeley.edu/ for NGA-W2 -- check that tool works
-% for input record numbers 
+% To obtain the time histories for the ground motions represented in each
+% database, proceed to the links provided in the output file or follow the
+% instructions provided at the top of the file. For more specific
+% instructions for downloading the time histories, see the documentation
+% files for each database. 
 
 fin = fopen(outputFile,'w');
+fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});
 if arb == 1
     fprintf(fin,'%s \t %s \t %s \t %s \n','Record Number','Scale Factor','File Name','URL');
 elseif arb == 2
