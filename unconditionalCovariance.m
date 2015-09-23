@@ -27,17 +27,6 @@ for i=1:length(perKnown)
     end
 end
 
-if showPlots == 1
-    figure
-    imagesc(perKnown,perKnown,corrReq)
-    title('Baker and Jayaram (2008) correlations');
-    xlabel('T_1 (s)');
-    ylabel('T_2 (s)');
-    colorbar('YLim',[0 1]);
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    set(gca, 'YDir', 'normal')
-end
-
 %% Observed correlations
 
 sampleUse = [];
@@ -50,52 +39,12 @@ for i=1:length(perKnown)
     end
 end
 
-if showPlots == 1
-    figure
-    imagesc(perKnown,perKnown,corrReqSamp)
-    title('Sample correlations');
-    xlabel('T_1 (s)');
-    ylabel('T_2 (s)');
-    colorbar('YLim',[0 1]);
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    set(gca, 'YDir', 'normal')
-end
-
-%% Error
-diffCorr = corrReqSamp-corrReq;
-% Display minimum and maximum difference in correlations
-% display(min(abs(diffCorr(:))));
-% display(max(abs(diffCorr(:))));
-if showPlots == 1
-    figure
-    imagesc(perKnown,perKnown,diffCorr)
-    title('Difference in the correlation (sample-model)');
-    xlabel('T_1 (s)');
-    ylabel('T_2 (s)');
-    colorbar;
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    set(gca, 'YDir', 'normal')
-end
-
-%% contour plot
+%% contour plots
 
 if showPlots == 1
-    figure
-    contour(perKnown, perKnown, corrReqSamp);
-    set(gca,'yscale','log','xscale','log'); 
-    axis square;
-    xlabel('T_1');
-    ylabel('T_2');
-    title('Sample correlation contour');
-    xlabel('T_1')
-    ylabel('T_2')
-    colorbar('YLim',[0 1]);
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
     figure
     contour(perKnown, perKnown, corrReq);
     set(gca,'yscale','log','xscale','log'); 
-    axis square;
     xlabel('T_1');
     ylabel('T_2');
     title('Baker and Jayaram (2008) correlation contour');
@@ -103,4 +52,26 @@ if showPlots == 1
     ylabel('T_2')
     colorbar('YLim',[0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
+    
+    figure
+    contour(perKnown, perKnown, corrReqSamp);
+    set(gca,'yscale','log','xscale','log'); 
+    xlabel('T_1');
+    ylabel('T_2');
+    title('Sample correlation contour');
+    xlabel('T_1')
+    ylabel('T_2')
+    colorbar('YLim',[0 1]);
+    set(findall(gcf,'-property','FontSize'),'FontSize',18) 
+    
+    % Error
+    diffCorr = corrReqSamp-corrReq;
+    figure
+    imagesc(perKnown,perKnown,diffCorr)
+    title('Difference in the correlation (sample-model)');
+    xlabel('T_1 (s)');
+    ylabel('T_2 (s)');
+    colorbar('YLim', [-1 1]);
+    set(findall(gcf,'-property','FontSize'),'FontSize',18)
+    set(gca,'yscale','log','xscale','log'); 
 end

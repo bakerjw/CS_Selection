@@ -53,6 +53,7 @@
 % Variable definitions for loading data:
 % data      : 0 to load NGA_W1_meta_data
 %             1 to run NGA_W2_meta_data
+%             2 to run test spectra from simulated GM
 % cond      : 0 to run unconditional selection
 %             1 to run conditional
 % arb       : 1 for single-component selection and arbitrary component sigma
@@ -157,10 +158,10 @@
 % Choose data set and type of selection the user should note that the
 % original NGA database does not contain RotD100 values for two-component
 % selection
-data                 = 0;
+data                 = 1;
 optInputs.cond       = 1;
-arb                  = 2; 
-RotD                 = 50; 
+arb                  = 1; 
+RotD                 = 100; 
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 20;
@@ -207,7 +208,7 @@ showPlots            = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % User inputs begin here
 
-M_bar       = 7;
+M_bar       = 6;
 R_bar       = 10; 
 eps_bar     = 2; % for conditional selection
 Vs30        = 400;
@@ -238,7 +239,7 @@ optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
 seedValue            = 0; % default will be set to 0
 
 % Specified ranges for Vs30, magnitude, and distance values, respectively
-allowedVs30          = [200 500];
+allowedVs30          = [200 900];
 allowedMag           = [5.5 inf];
 allowedD             = [0 30];
 
@@ -251,6 +252,8 @@ if data == 0
     load NGA_W1_meta_data 
 elseif data == 1
     load NGA_W2_meta_data
+elseif data == 2
+    load GM_sim_meta_data
 end
 
 % Format appropriate variables according to single or two-component
@@ -439,13 +442,13 @@ for i = 1:optInputs.nGM
         
         elseif optInputs.isScaled == 1
             if optInputs.cond == 1
-                scaleFac(j) = min(optInputs.maxScale, exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1)));
+                scaleFac(j) = exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1));
             elseif optInputs.cond == 0
-                scaleFac(j) = min(optInputs.maxScale, sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2));
+                scaleFac(j) = sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2);
             end  
-            err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
+            err(j) = sum((log(exp(IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1))*scaleFac(j)) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
         else
-            err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
+            err(j) = sum((IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
         end
         
       
@@ -633,10 +636,14 @@ if (checkCorr)
 end
 
 %% Output data to file (best viewed with a text editor)
-% output http://ngawest2.berkeley.edu/ for NGA-W2 -- check that tool works
-% for input record numbers 
+% To obtain the time histories for the ground motions represented in each
+% database, proceed to the links provided in the output file or follow the
+% instructions provided at the top of the file. For more specific
+% instructions for downloading the time histories, see the documentation
+% files for each database. 
 
 fin = fopen(outputFile,'w');
+fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});
 if arb == 1
     fprintf(fin,'%s \t %s \t %s \t %s \n','Record Number','Scale Factor','File Name','URL');
 elseif arb == 2
