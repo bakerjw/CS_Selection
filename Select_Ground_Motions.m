@@ -158,10 +158,10 @@
 % Choose data set and type of selection the user should note that the
 % original NGA database does not contain RotD100 values for two-component
 % selection
-data                 = 2;
+data                 = 1;
 optInputs.cond       = 1;
 arb                  = 1; 
-RotD                 = 50; 
+RotD                 = 100; 
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 20;
@@ -412,7 +412,7 @@ end
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
     gmCell{j} = zeros(optInputs.nGM,numPer);
-    gmCell{j}(:,:) = exp(mvnrnd(Tgts.meanReq,Tgts.covReq,optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
+    gmCell{j}(:,:) = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
     devMeanSim = mean(log(gmCell{j})) - Tgts.meanReq;
     devSkewSim = skewness(log(gmCell{j}),1);
     devSigSim = std(log(gmCell{j})) - sqrt(diag(Tgts.covReq))';
@@ -442,13 +442,13 @@ for i = 1:optInputs.nGM
         
         elseif optInputs.isScaled == 1
             if optInputs.cond == 1
-                scaleFac(j) = min(optInputs.maxScale, exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1)));
+                scaleFac(j) = exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1));
             elseif optInputs.cond == 0
-                scaleFac(j) = min(optInputs.maxScale, sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2));
+                scaleFac(j) = sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2);
             end  
-            err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
+            err(j) = sum((log(exp(IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1))*scaleFac(j)) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
         else
-            err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
+            err(j) = sum((IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
         end
         
       
