@@ -98,12 +98,14 @@ if showPlots == 1
     % Error
     diffCorr = corrReqSamp-corrReq;
     figure
-    contour(perKnown1,perKnown1,diffCorr)
+    contour(perKnown1,perKnown1,diffCorr);
+    set(gca, 'yscale', 'log','xscale','log');
+    axis square;
     title('Difference in the correlation (sample-model)');
     xlabel('T_1 (s)');
     ylabel('T_2 (s)');
     colorbar('YLim',[-1 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    set(gca, 'yscale', 'log','xscale','log')
+    
 end
 
