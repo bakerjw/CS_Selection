@@ -158,13 +158,13 @@
 % Choose data set and type of selection the user should note that the
 % original NGA database does not contain RotD100 values for two-component
 % selection
-data                 = 1;
-optInputs.cond       = 1;
+data                 = 0;
+optInputs.cond       = 0;
 arb                  = 1; 
 RotD                 = 100; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
+optInputs.nGM        = 5;
 optInputs.T1         = 1.5; % for unconditional selection, T1 = 100
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -363,7 +363,7 @@ for i=1:numPer
         % Periods
         Ti = optInputs.PerTgt(i);
         Tj = optInputs.PerTgt(j);
-
+%%%%%%% sigmas are different for single vs 2 component
         % Means and variances
         rec1 = find(optInputs.PerTgt == Ti);
         rec2 = find(optInputs.PerTgt == Tj);
@@ -373,7 +373,7 @@ for i=1:numPer
         if optInputs.cond == 1 % variance will be zero at specified T1
             rec = find(optInputs.PerTgt == optInputs.T1);
             varT = sigma(rec)^2;
-
+            
             sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
             sigma22 = varT;
             sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
@@ -431,6 +431,7 @@ optInputs.recID = zeros(optInputs.nGM,1);
 IMs.sampleSmall = [];
 finalScaleFac = ones(optInputs.nGM,1);
 
+% add flag? 
 for i = 1:optInputs.nGM
     err = zeros(optInputs.nBig,1);
     scaleFac = ones(optInputs.nBig,1);
@@ -440,12 +441,15 @@ for i = 1:optInputs.nGM
         if (any(optInputs.recID == j)) % check for repeated spectra selection, set error to 1000000 if repeated, otherwise calculate error
             err(j) = 1000000;
         
+        % scale before this part......
         elseif optInputs.isScaled == 1
             if optInputs.cond == 1
                 scaleFac(j) = exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1));
             elseif optInputs.cond == 0
                 scaleFac(j) = sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2);
             end  
+            
+            % err = max scale make 1000000
             err(j) = sum((log(exp(IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1))*scaleFac(j)) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
         else
             err(j) = sum((IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
