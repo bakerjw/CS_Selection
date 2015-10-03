@@ -156,7 +156,7 @@
 databaseFile         = 'NGA_W1_meta_data.mat';
 optInputs.cond       = 1;
 arb                  = 1; 
-RotD                 = 100; 
+RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 5;
@@ -558,20 +558,6 @@ if (showPlots)
     ylabel('S_a (g)');
     legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
     title ('Response spectra of selected ground motions');
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-    % Plot spectra only at periods where error is minimized
-    figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), 'b', 'linewidth', 3)
-    hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    loglog(optInputs.PerTgt,exp(IMs.sampleBig(finalRecords,:)).*repmat(finalScaleFactors,1,numPer),'color',[0.5 0.5 0.5],'linewidth',1)
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)');
-    ylabel('S_a (g)');
-    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
-    title ('Response spectra of selected ground motions at periods where error is minimized');
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
     % Sample, original sample, and target means
