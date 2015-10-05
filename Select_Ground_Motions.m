@@ -153,13 +153,13 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W1_meta_data.mat';
+databaseFile         = 'NGA_W2_meta_data.mat';
 optInputs.cond       = 1;
-arb                  = 1; 
+arb                  = 2; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 30;
+optInputs.nGM        = 20;
 optInputs.T1         = 1.5; % for unconditional selection, T1 = 100
 Tmin                 = 0.1;
 Tmax                 = 10;

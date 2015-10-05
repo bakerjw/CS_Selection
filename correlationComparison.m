@@ -16,6 +16,7 @@
 % model
 
 % Modify perTgt to include T1
+origPerKnown = perKnown;
 if ~any(perKnown == optInputs.T1)
     perKnown = [perKnown(perKnown<T1) optInputs.T1 perKnown(perKnown>T1)];
 end
@@ -54,12 +55,10 @@ for i=1:length(perKnown)
 end
 
 %% Observed correlations
-corrReqSamp = zeros(length(perKnown));
-
 sampleUse = [];
 sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)));
-sampleUse = [sampleUse(:,perKnown<optInputs.T1) interp1(perKnown,sampleUse',optInputs.T1)' sampleUse(:,perKnown>optInputs.T1)];
-
+sampleUse = [sampleUse(:,origPerKnown<optInputs.T1) interp1(origPerKnown,sampleUse',optInputs.T1)' sampleUse(:,origPerKnown>optInputs.T1)];
+corrReqSamp = zeros(length(perKnown));
 for i=1:length(perKnown)
     for j=1:length(perKnown)
         corrMatrix = corrcoef((sampleUse(:,i)),(sampleUse(:,j)));
