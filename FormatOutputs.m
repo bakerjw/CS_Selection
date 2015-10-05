@@ -13,7 +13,7 @@ for i = 1 : length(finalRecords)
     
     % Read in relevant data
     file_in = fopen(filename, 'r');    % open the file for reading
-    for li=1:3
+    for li=1:7
         ans = fgetl(file_in);   % discard the first 3 lines
     end
     [ans ans] = fscanf(file_in, '%5c', 1);   

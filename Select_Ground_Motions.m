@@ -41,19 +41,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Load workspace containing ground-motion information. 
-% Based on a user flag, either NGA or NGA W2 database is used. 
-% Documentation of either database workspace ('NGA_W1_meta_data.mat'
-% or 'NGA_W2_meta_data.mat') can be found at 'WorkspaceDocumentation.m'.
-% For an alternate database, the minimum information to be provided
-% includes the pseudo-acceleration spectra of the available, ground
-% motions, periods at which the spectra are defined, and other information
-% required to compute means and variances using ground-motion models.
-% This cell can be modified by the user if desired.
+% Specify a database with a needed ground motion data. Provided databases
+% include 'NGA_W1_meta_data.mat', 'NGA_W2_meta_data.mat' and
+% 'GM_sim_meta_data.mat' Further documentation of these databases can be 
+% found at 'WorkspaceDocumentation***.txt'.
 %
 % Variable definitions for loading data:
-% data      : 0 to load NGA_W1_meta_data
-%             1 to run NGA_W2_meta_data
-%             2 to run test spectra from simulated GM
+% databaseFile : filename of the target database. 
 % cond      : 0 to run unconditional selection
 %             1 to run conditional
 % arb       : 1 for single-component selection and arbitrary component sigma
@@ -133,6 +127,13 @@
 % checkCorr : If 1, this runs a code that compares the correlation
 %             structure of the selected ground motions to the correlations
 %             published by Baker and Jayaram (2008).
+% nTrials   : number of sets of response spectra that are simulated. The
+%             best set (in terms of matching means, variances and skewness
+%             is chosen as the seed). The user can also optionally rerun
+%             this segment multiple times before deciding to proceed with
+%             the rest of the algorithm. It is to be noted, however, that
+%             the greedy improvement technique significantly improves the
+%             match between the means and the variances subsequently.
 % seedValue : For repeatability. For a particular seedValue not equal to
 %             zero, the code will output the same set of ground motions.
 %             The set will change when the seedValue changes. If set to
@@ -142,9 +143,18 @@
 % showPlots : 0 to suppress plots, 1 to show plots
 % outputFile: File name of the output file
 % perKnown  : The set of P periods.
+% allowedVs30 : Only records with Vs30 values within this range will be
+%               searched. For the simulated database, all Vs30 values are
+%               863 m/s and this range must contain 863 m/s or the
+%               algorithm will not run.
+% allowedMag  : Only records with magnitudes within this range will be
+%               searched
+% allowedD    : Only records with closest distances within this range will
+%               be searched
 % allowedIndex: Only records that meet a certain criteria for Vs30,
-%               magnitude, and closest distance values will be searched 
-%               for the ground motion selection
+%               magnitude, and closest distance values set by the previous
+%               three user input variables will be searched for the ground
+%               motion selection
 %
 % If a database other than the NGA database is used, also define the
 % following variables:
@@ -158,14 +168,15 @@
 % Choose data set and type of selection the user should note that the
 % original NGA database does not contain RotD100 values for two-component
 % selection
-data                 = 1;
+
+databaseFile         = 'NGA_W1_meta_data.mat';
 optInputs.cond       = 1;
-arb                  = 1; 
-RotD                 = 100; 
+arb                  = 2; 
+RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
-optInputs.T1         = 1.5; % for unconditional selection, T1 = 100
+optInputs.nGM        = 50;
+optInputs.T1         = 1.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
 
@@ -181,10 +192,8 @@ showPlots            = 1;
 % code. The input variables defined below are the inputs required for this
 % model. The user can change the ground-motion model as long as any
 % additional information that may be required by the new model is provided.
-
-% Please refer to Jayaram et al.(2011) Baker (2011) for details on the 
-% method that is used for obtaining the target means and covariances in
-% this example. 
+% Refer to Jayaram et al.(2011) and Baker (2011) for details on the 
+% method used for obtaining the target means and covariances. 
 
 % The code provides the user an option to not match the target variance.
 % This is done by setting the target variance to zero so that each selected
@@ -218,13 +227,12 @@ lambda      = 180;
 Zvs         = 2;
 useVar      = 1;
 
-Rrup        = R_bar; % Can be modified by the user
-Rjb         = R_bar; % Can be modified by the user
-
-% User inputs end here
+Rrup        = R_bar; 
+Rjb         = R_bar; 
 
 %% Advanced user inputs  
-% Most users will likely keep these default values
+% The definitions for these inputs are documented in the sections above.
+% Most users will likely keep these default values.
 optInputs.isScaled   = 1;
 optInputs.maxScale   = 4;
 optInputs.weights    = [1.0 2.0];
@@ -233,53 +241,39 @@ optInputs.penalty    = 0;
 checkCorr            = 1;
 outputFile           = 'Output_File.dat';
 optInputs.tol        = 15; 
-optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
+optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),50);
 nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
-seedValue            = 0; % default will be set to 0
-
-% Specified ranges for Vs30, magnitude, and distance values, respectively
+seedValue            = 1; % default will be set to 0
 allowedVs30          = [200 900];
 allowedMag           = [5.5 inf];
 allowedD             = [0 30];
 
-% PerTgt can be edited for a custom set of periods 
-% Advanced user inputs end here
+% User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load the user-chosen database and format according to type of selection
-% SaKnown can be modified as a user input
-if data == 0
-    load NGA_W1_meta_data 
-elseif data == 1
-    load NGA_W2_meta_data
-elseif data == 2
-    load GM_sim_meta_data
-end
+load(databaseFile) % load the specified database
 
-% Format appropriate variables according to single or two-component
-% selection
+% Format appropriate variables for single or two-component selection
 if arb == 1
     Filename    = [Filename_1; Filename_2];
     SaKnown     = [Sa_1; Sa_2]; 
     soil_Vs30   = [soil_Vs30; soil_Vs30]; 
     magnitude   = [magnitude; magnitude]; 
     closest_D   = [closest_D; closest_D]; 
-elseif arb == 2 && RotD == 50
-    SaKnown     = Sa_RotD50; 
+else % two-component selection
     Filename    = Filename_1;
-elseif arb == 2 && RotD == 100 && data == 1 % for the NGA-W2 database only
-    SaKnown     = Sa_RotD100;
-    Filename    = Filename_1;
-else
-    % print an error message and stop if one of the above combinations was
-    % not specified
-    fprintf('Error--selected values of ''arb'', ''RotD'' and/or ''data'' are not valid \n\n')
-    break
+    if RotD == 50 && exist('Sa_RotD50')
+        SaKnown     = Sa_RotD50;
+    elseif RotD == 100 && exist('Sa_RotD100')
+        SaKnown     = Sa_RotD100;
+    else
+        fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
+    end
 end
 
 % Create variable for known periods
 perKnown = Periods;
-
 % More fields available in databases that can also be used in screening 
 % (e.g. the ones shown below)
 
@@ -303,12 +297,12 @@ recPer = zeros(length(optInputs.PerTgt),1);
 for i=1:length(optInputs.PerTgt)
     [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
 end
-
-% remove any repeated values from PerTgt (this can occur if the specified
-% conditioning period matches a period already in perKnown)
-recPer = unique(recPer);
-optInputs.PerTgt = perKnown(recPer);
-numPer = length(recPer);
+% 
+% % remove any repeated values from PerTgt (this can occur if the specified
+% % conditioning period matches a period already in perKnown)
+% recPer = unique(recPer);
+% optInputs.PerTgt = perKnown(recPer);
+% numPer = length(recPer);
 
 % Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
@@ -316,7 +310,7 @@ recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
 recValidMag = magnitude > allowedMag(1) & magnitude < allowedMag(2);
 recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
 
-% only these records will be searched
+% only the allowable records will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 nAllowed = length(allowedIndex);
 
@@ -331,23 +325,18 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 
 
 %% Determine target spectra using ground-motion model 
-%(replace ground-motion model code if desired)
-sa = zeros(1,numPer);
-sigma = zeros(1,numPer);
-for i = 1:numPer
-    [sa(1,i), sigma(1,i)] = CB_2008_nga (M_bar, optInputs.PerTgt(i), Rrup,...
-                            Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Compute predicted median and log-standard-deviation using the Campbell 
+% and Borzognia GMPE (can be replaced if desired)
+[sa, sigma] = CB_2008_nga (M_bar, optInputs.PerTgt, Rrup,...
+                           Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
 
 % Estimate target means and covariances
 
 % (Log) Response Spectrum Mean: meanReq
 % for conditional selection, include epsilons
 if optInputs.cond == 1 
-    rho = zeros(1,numPer);  
-    for i = 1:numPer
+    rho = zeros(1,length(optInputs.PerTgt));  
+    for i = 1:length(optInputs.PerTgt)
         rho(i) = baker_jayaram_correlation(optInputs.PerTgt(i), optInputs.T1);
     end
     Tgts.meanReq = log(sa) + sigma.*eps_bar.*rho;
@@ -357,9 +346,15 @@ elseif optInputs.cond == 0
 end
 
 % (Log) Response Spectrum Covariance: covReq
-Tgts.covReq = zeros(numPer);
-for i=1:numPer
-    for j=1:numPer
+% Determine the relevant record and standard deviation/variance for T1
+% (will only be used in conditional selection)
+rec = find(optInputs.PerTgt == optInputs.T1);
+varT = sigma(rec)^2;
+sigma22 = varT;
+
+Tgts.covReq = zeros(length(optInputs.PerTgt));
+for i=1:length(optInputs.PerTgt)
+    for j=1:length(optInputs.PerTgt)
         % Periods
         Ti = optInputs.PerTgt(i);
         Tj = optInputs.PerTgt(j);
@@ -371,20 +366,18 @@ for i=1:numPer
         var2 = sigma(rec2)^2;
 
         if optInputs.cond == 1 % variance will be zero at specified T1
-            rec = find(optInputs.PerTgt == optInputs.T1);
-            varT = sigma(rec)^2;
-
-            sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
-            sigma22 = varT;
-            sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
-
-            sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
-            % Covariances
-            Tgts.covReq(i,j) = sigmaCond(1,2);
-        
+            if i == rec || j == rec
+                Tgts.covReq(i,j) = 1e-18;
+            else
+                sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
+                sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
+                sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
+                % Covariances
+                Tgts.covReq(i,j) = sigmaCond(1,2);
+            end
         elseif optInputs.cond == 0 
             % Covariances
-            Tgts.covReq(i,j) = baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);            
+            Tgts.covReq(i,j) = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2); 
         end
        
         if useVar == 0 % do not match the target variance
@@ -394,24 +387,23 @@ for i=1:numPer
     end
 end
 
-%% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
-% 20 sets of response spectra are simulated and the best set (in terms of
-% matching means, variances and skewness is chosen as the seed). The user
-% can also optionally rerun this segment multiple times before deciding to
-% proceed with the rest of the algorithm. It is to be noted, however, that
-% the greedy improvement technique significantly improves the match between
-% the means and the variances subsequently.
+% if optInputs.cond == 1
+%     Tgts.covReq(:,rec) = 1e-17;
+%     Tgts.covReq(rec,:) = 1e-17;
+% end
 
-% Setting initial seed for simulation
+%% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
+
+% Set initial seed for simulation
 if seedValue ~= 0
-    rng(seedValue); % intialize to the specified seed, for repeability
+    rng(seedValue); 
 else
     rng('shuffle');
 end
 
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
-    gmCell{j} = zeros(optInputs.nGM,numPer);
+    gmCell{j} = zeros(optInputs.nGM,length(optInputs.PerTgt));
     gmCell{j}(:,:) = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
     devMeanSim = mean(log(gmCell{j})) - Tgts.meanReq;
     devSkewSim = skewness(log(gmCell{j}),1);
@@ -431,6 +423,7 @@ optInputs.recID = zeros(optInputs.nGM,1);
 IMs.sampleSmall = [];
 finalScaleFac = ones(optInputs.nGM,1);
 
+% add flag? 
 for i = 1:optInputs.nGM
     err = zeros(optInputs.nBig,1);
     scaleFac = ones(optInputs.nBig,1);
@@ -446,9 +439,14 @@ for i = 1:optInputs.nGM
             elseif optInputs.cond == 0
                 scaleFac(j) = sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2);
             end  
-            err(j) = sum((log(exp(IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1))*scaleFac(j)) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
+            
+            if scaleFac(j) > optInputs.maxScale
+                err(j) = 1000000;
+            else
+                err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
+            end
         else
-            err(j) = sum((IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
+            err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
         end
         
       
@@ -496,8 +494,9 @@ meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
 sigErr = max(abs(origSigs(notT1)-Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
 
 % Display the original maximum error between the selected gm and the target
-display(meanErr);
-display(sigErr);
+fprintf('End of simulation stage \n')
+fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
+fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', sigErr); 
 
 %% Greedy subset modification procedure
 % Call the optimization function if the user defined tolerance has not been
@@ -531,8 +530,11 @@ end
     % meanReq    : Target mean for the (log) response spectrum
     % covReq     : Target covariance for the (log) response spectrum
 
-if (showPlots)
     
+if (showPlots)
+    [recPer, recPer1, ~] = unique(recPer);
+    PerTgt1 = perKnown(recPer);
+
     % Plot simulated response spectra -- move with the rest of the figures 
     figure
     loglog(optInputs.PerTgt, exp(Tgts.meanReq), '-r', 'linewidth', 3)
@@ -585,26 +587,12 @@ if (showPlots)
     title ('Response spectra of selected ground motions');
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
-    % Plot spectra only at periods where error is minimized
-    figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), 'b', 'linewidth', 3)
-    hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    loglog(optInputs.PerTgt,exp(IMs.sampleBig(finalRecords,:)).*repmat(finalScaleFactors,1,numPer),'color',[0.5 0.5 0.5],'linewidth',1)
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)');
-    ylabel('S_a (g)');
-    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
-    title ('Response spectra of selected ground motions at periods where error is minimized');
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
     % Sample, original sample, and target means
     figure
     loglog(optInputs.PerTgt,Tgts.means,'k','linewidth',1)
     hold on
-    loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
-    loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
+    loglog(PerTgt1, origMeans(recPer1),'r*', 'linewidth',2)
+    loglog(PerTgt1,exp(mean(IMs.sampleSmall(:,recPer1))),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
     xlabel('T (s)');
     ylabel('Median S_a (g)');
@@ -616,7 +604,7 @@ if (showPlots)
     figure
     semilogx(optInputs.PerTgt,Tgts.sigs,'k','linewidth',1)
     hold on
-    semilogx(optInputs.PerTgt, origSigs,'r*','linewidth',2)
+    semilogx(PerTgt1, origSigs(recPer1),'r*','linewidth',2)
     semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
     xlabel('T (s)');
@@ -628,11 +616,7 @@ if (showPlots)
 end
 
 if (checkCorr)
-    if optInputs.cond == 1
-        conditionalCovariance
-    elseif optInputs.cond == 0
-        unconditionalCovariance
-    end
+    correlationComparison;
 end
 
 %% Output data to file (best viewed with a text editor)
@@ -643,6 +627,7 @@ end
 % files for each database. 
 
 fin = fopen(outputFile,'w');
+% print header information
 fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});
 if arb == 1
     fprintf(fin,'%s \t %s \t %s \t %s \n','Record Number','Scale Factor','File Name','URL');
@@ -650,6 +635,7 @@ elseif arb == 2
     fprintf(fin,'%s \t %s \t %s \t %s \t %s \t %s \t %s \n','Record Number','NGA Record Sequence Number','Scale Factor','File Name Dir. 1','File Name Dir. 2','URL Dir 1','URL Dir 2');
 end
 
+% print record data
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1
