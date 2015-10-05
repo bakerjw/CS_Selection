@@ -171,7 +171,7 @@
 
 databaseFile         = 'NGA_W2_meta_data.mat';
 optInputs.cond       = 1;
-arb                  = 2; 
+arb                  = 1; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
@@ -346,14 +346,19 @@ elseif optInputs.cond == 0
 end
 
 % (Log) Response Spectrum Covariance: covReq
+% Determine the relevant record and standard deviation/variance for T1
+% (will only be used in conditional selection)
+rec = find(optInputs.PerTgt == optInputs.T1);
+varT = sigma(rec)^2;
+sigma22 = varT;
+
 Tgts.covReq = zeros(numPer);
-% Tgts.corrReq = zeros(numPer);
 for i=1:numPer
     for j=1:numPer
         % Periods
         Ti = optInputs.PerTgt(i);
         Tj = optInputs.PerTgt(j);
-%%%%%%% sigmas are different for single vs 2 component
+
         % Means and variances
         rec1 = find(optInputs.PerTgt == Ti);
         rec2 = find(optInputs.PerTgt == Tj);
@@ -361,20 +366,17 @@ for i=1:numPer
         var2 = sigma(rec2)^2;
 
         if optInputs.cond == 1 % variance will be zero at specified T1
-            rec = find(optInputs.PerTgt == optInputs.T1);
-            varT = sigma(rec)^2;
-            
-            sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
-            sigma22 = varT;
-            sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
-
-            sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
-            % Covariances
-            Tgts.covReq(i,j) = sigmaCond(1,2);
-%             Tgts.corrReq(i,j) = Tgts.covReq(i,j)/sqrt(sigmaCond(1,1)*sigmaCond(2,2));
+            if i == rec || j == rec
+                Tgts.covReq(i,j) = 1e-18;
+            else
+                sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
+                sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
+                sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
+                % Covariances
+                Tgts.covReq(i,j) = sigmaCond(1,2);
+            end
         elseif optInputs.cond == 0 
             % Covariances
-%             Tgts.corrReq(i,j) = baker_jayaram_correlation(Ti,Tj);
             Tgts.covReq(i,j) = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2); 
         end
        
@@ -384,6 +386,11 @@ for i=1:numPer
 
     end
 end
+
+% if optInputs.cond == 1
+%     Tgts.covReq(:,rec) = 1e-17;
+%     Tgts.covReq(rec,:) = 1e-17;
+% end
 
 %% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
 
@@ -426,7 +433,6 @@ for i = 1:optInputs.nGM
         if (any(optInputs.recID == j)) % check for repeated spectra selection, set error to 1000000 if repeated, otherwise calculate error
             err(j) = 1000000;
         
-        % scale before this part......
         elseif optInputs.isScaled == 1
             if optInputs.cond == 1
                 scaleFac(j) = exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1));
@@ -434,10 +440,13 @@ for i = 1:optInputs.nGM
                 scaleFac(j) = sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2);
             end  
             
-            % err = max scale make 1000000
-            err(j) = sum((log(exp(IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1))*scaleFac(j)) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
+            if scaleFac(j) > optInputs.maxScale
+                err(j) = 1000000;
+            else
+                err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
+            end
         else
-            err(j) = sum((IMs.sampleBig(j,optInputs.PerTgt ~= optInputs.T1) - log(gm(i,optInputs.PerTgt ~= optInputs.T1))).^2);
+            err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
         end
         
       
