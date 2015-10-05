@@ -45,7 +45,6 @@ function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOpt( optInputs
 % optimization runs. The output sampleSmall will not be returned as part of
 % a data structure, but as a new and separate variable
 sampleSmall = IMs.sampleSmall;
-notT1 = find(optInputs.PerTgt ~= optInputs.T1);
 
 % if optimizing the ground motions by calculating the Dn value, first
 % calculate the emperical CDF values and initialize a vector of Dn values
@@ -140,6 +139,7 @@ for k=1:optInputs.nLoop % Number of passes
     % specified tolerance? Recalculate new standard deviations of new
     % sampleSmall and then recalculate new maximum percent errors of means
     % and standard deviations 
+    notT1 = find(optInputs.PerTgt ~= optInputs.T1);
     sigs = std(sampleSmall);
     meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
     sigErr = max(abs(sigs(notT1) - Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
