@@ -159,7 +159,7 @@ arb                  = 1;
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 5;
+optInputs.nGM        = 30;
 optInputs.T1         = 1.5; % for unconditional selection, T1 = 100
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -227,7 +227,7 @@ optInputs.tol        = 15;
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
 nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
-seedValue            = 0; % default will be set to 0
+seedValue            = 1; % default will be set to 0
 
 % Specified ranges for Vs30, magnitude, and distance values, respectively
 allowedVs30          = [200 900];
@@ -332,6 +332,7 @@ end
 
 % (Log) Response Spectrum Covariance: covReq
 Tgts.covReq = zeros(numPer);
+% Tgts.corrReq = zeros(numPer);
 for i=1:numPer
     for j=1:numPer
         % Periods
@@ -355,10 +356,11 @@ for i=1:numPer
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
             % Covariances
             Tgts.covReq(i,j) = sigmaCond(1,2);
-        
+%             Tgts.corrReq(i,j) = Tgts.covReq(i,j)/sqrt(sigmaCond(1,1)*sigmaCond(2,2));
         elseif optInputs.cond == 0 
             % Covariances
-            Tgts.covReq(i,j) = baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);            
+%             Tgts.corrReq(i,j) = baker_jayaram_correlation(Ti,Tj);
+            Tgts.covReq(i,j) = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2); 
         end
        
         if useVar == 0 % do not match the target variance
@@ -589,11 +591,7 @@ if (showPlots)
 end
 
 if (checkCorr)
-    if optInputs.cond == 1
-        conditionalCovariance
-    elseif optInputs.cond == 0
-        unconditionalCovariance
-    end
+    correlationComparison;
 end
 
 %% Output data to file (best viewed with a text editor)
