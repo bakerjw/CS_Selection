@@ -145,8 +145,9 @@ for k=1:optInputs.nLoop % Number of passes
     sigErr = max(abs(sigs(notT1) - Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
     
     % Display the results
-    display(meanErr);
-    display(sigErr);
+    fprintf('End of loop %1.0f of %1.0f \n', k, optInputs.nLoop)
+    fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
+    fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', sigErr); 
     if meanErr < optInputs.tol && sigErr < optInputs.tol
         display('The percent errors between chosen and target spectra are now within the required tolerances.');
         break;
