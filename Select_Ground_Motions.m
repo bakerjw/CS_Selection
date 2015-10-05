@@ -171,11 +171,11 @@
 
 databaseFile         = 'NGA_W1_meta_data.mat';
 optInputs.cond       = 1;
-arb                  = 1; 
+arb                  = 2; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 40;
+optInputs.nGM        = 50;
 optInputs.T1         = 1.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -241,7 +241,7 @@ optInputs.penalty    = 0;
 checkCorr            = 1;
 outputFile           = 'Output_File.dat';
 optInputs.tol        = 15; 
-optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
+optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),50);
 nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
 seedValue            = 1; % default will be set to 0
@@ -297,12 +297,12 @@ recPer = zeros(length(optInputs.PerTgt),1);
 for i=1:length(optInputs.PerTgt)
     [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
 end
-
-% remove any repeated values from PerTgt (this can occur if the specified
-% conditioning period matches a period already in perKnown)
-recPer = unique(recPer);
-optInputs.PerTgt = perKnown(recPer);
-numPer = length(recPer);
+% 
+% % remove any repeated values from PerTgt (this can occur if the specified
+% % conditioning period matches a period already in perKnown)
+% recPer = unique(recPer);
+% optInputs.PerTgt = perKnown(recPer);
+% numPer = length(recPer);
 
 % Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
@@ -335,8 +335,8 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 % (Log) Response Spectrum Mean: meanReq
 % for conditional selection, include epsilons
 if optInputs.cond == 1 
-    rho = zeros(1,numPer);  
-    for i = 1:numPer
+    rho = zeros(1,length(optInputs.PerTgt));  
+    for i = 1:length(optInputs.PerTgt)
         rho(i) = baker_jayaram_correlation(optInputs.PerTgt(i), optInputs.T1);
     end
     Tgts.meanReq = log(sa) + sigma.*eps_bar.*rho;
@@ -352,9 +352,9 @@ rec = find(optInputs.PerTgt == optInputs.T1);
 varT = sigma(rec)^2;
 sigma22 = varT;
 
-Tgts.covReq = zeros(numPer);
-for i=1:numPer
-    for j=1:numPer
+Tgts.covReq = zeros(length(optInputs.PerTgt));
+for i=1:length(optInputs.PerTgt)
+    for j=1:length(optInputs.PerTgt)
         % Periods
         Ti = optInputs.PerTgt(i);
         Tj = optInputs.PerTgt(j);
@@ -403,7 +403,7 @@ end
 
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
-    gmCell{j} = zeros(optInputs.nGM,numPer);
+    gmCell{j} = zeros(optInputs.nGM,length(optInputs.PerTgt));
     gmCell{j}(:,:) = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
     devMeanSim = mean(log(gmCell{j})) - Tgts.meanReq;
     devSkewSim = skewness(log(gmCell{j}),1);
@@ -530,8 +530,11 @@ end
     % meanReq    : Target mean for the (log) response spectrum
     % covReq     : Target covariance for the (log) response spectrum
 
-if (showPlots)
     
+if (showPlots)
+    [recPer, recPer1, ~] = unique(recPer);
+    PerTgt1 = perKnown(recPer);
+
     % Plot simulated response spectra -- move with the rest of the figures 
     figure
     loglog(optInputs.PerTgt, exp(Tgts.meanReq), '-r', 'linewidth', 3)
@@ -588,8 +591,8 @@ if (showPlots)
     figure
     loglog(optInputs.PerTgt,Tgts.means,'k','linewidth',1)
     hold on
-    loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
-    loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
+    loglog(PerTgt1, origMeans(recPer1),'r*', 'linewidth',2)
+    loglog(PerTgt1,exp(mean(IMs.sampleSmall(:,recPer1))),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
     xlabel('T (s)');
     ylabel('Median S_a (g)');
@@ -601,7 +604,7 @@ if (showPlots)
     figure
     semilogx(optInputs.PerTgt,Tgts.sigs,'k','linewidth',1)
     hold on
-    semilogx(optInputs.PerTgt, origSigs,'r*','linewidth',2)
+    semilogx(PerTgt1, origSigs(recPer1),'r*','linewidth',2)
     semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
     xlabel('T (s)');
