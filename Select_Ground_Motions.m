@@ -127,6 +127,13 @@
 % checkCorr : If 1, this runs a code that compares the correlation
 %             structure of the selected ground motions to the correlations
 %             published by Baker and Jayaram (2008).
+% nTrials   : number of sets of response spectra that are simulated. The
+%             best set (in terms of matching means, variances and skewness
+%             is chosen as the seed). The user can also optionally rerun
+%             this segment multiple times before deciding to proceed with
+%             the rest of the algorithm. It is to be noted, however, that
+%             the greedy improvement technique significantly improves the
+%             match between the means and the variances subsequently.
 % seedValue : For repeatability. For a particular seedValue not equal to
 %             zero, the code will output the same set of ground motions.
 %             The set will change when the seedValue changes. If set to
@@ -136,9 +143,18 @@
 % showPlots : 0 to suppress plots, 1 to show plots
 % outputFile: File name of the output file
 % perKnown  : The set of P periods.
+% allowedVs30 : Only records with Vs30 values within this range will be
+%               searched. For the simulated database, all Vs30 values are
+%               863 m/s and this range must contain 863 m/s or the
+%               algorithm will not run.
+% allowedMag  : Only records with magnitudes within this range will be
+%               searched
+% allowedD    : Only records with closest distances within this range will
+%               be searched
 % allowedIndex: Only records that meet a certain criteria for Vs30,
-%               magnitude, and closest distance values will be searched 
-%               for the ground motion selection
+%               magnitude, and closest distance values set by the previous
+%               three user input variables will be searched for the ground
+%               motion selection
 %
 % If a database other than the NGA database is used, also define the
 % following variables:
@@ -159,7 +175,7 @@ arb                  = 2;
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
+optInputs.nGM        = 40;
 optInputs.T1         = 1.5; % for unconditional selection, T1 = 100
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -215,7 +231,8 @@ Rrup        = R_bar;
 Rjb         = R_bar; 
 
 %% Advanced user inputs  
-% Most users will likely keep these default values
+% The definitions for these inputs are documented in the sections above.
+% Most users will likely keep these default values.
 optInputs.isScaled   = 1;
 optInputs.maxScale   = 4;
 optInputs.weights    = [1.0 2.0];
@@ -228,8 +245,6 @@ optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
 nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
 seedValue            = 1; % default will be set to 0
-
-% Specified ranges for Vs30, magnitude, and distance values, respectively
 allowedVs30          = [200 900];
 allowedMag           = [5.5 inf];
 allowedD             = [0 30];
@@ -371,12 +386,10 @@ for i=1:numPer
 end
 
 %% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
-% nTrials sets of response spectra are simulated and the best set (in terms of
-% matching means, variances and skewness is chosen as the seed). 
 
 % Set initial seed for simulation
 if seedValue ~= 0
-    rng(seedValue); % intialize to the specified seed, for repeability
+    rng(seedValue); 
 else
     rng('shuffle');
 end
