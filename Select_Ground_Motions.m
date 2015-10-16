@@ -247,7 +247,7 @@ optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
 seedValue            = 1; % default will be set to 0
 allowedVs30          = [200 900];
 allowedMag           = [5.5 inf];
-allowedD             = [0 30];
+allowedD             = [0 30]; % could go up to 300 for simulated 
 
 % User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -297,12 +297,12 @@ recPer = zeros(length(optInputs.PerTgt),1);
 for i=1:length(optInputs.PerTgt)
     [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
 end
-% 
-% % remove any repeated values from PerTgt (this can occur if the specified
-% % conditioning period matches a period already in perKnown)
-% recPer = unique(recPer);
-% optInputs.PerTgt = perKnown(recPer);
-% numPer = length(recPer);
+
+% remove any repeated values from PerTgt (this can occur if the specified
+% conditioning period matches a period already in perKnown)
+recPer = unique(recPer);
+optInputs.PerTgt = perKnown(recPer);
+numPer = length(recPer);
 
 % Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
@@ -342,6 +342,7 @@ if optInputs.cond == 1
     Tgts.meanReq = log(sa) + sigma.*eps_bar.*rho;
     optInputs.lnSa1 = Tgts.meanReq(optInputs.PerTgt == optInputs.T1);
 elseif optInputs.cond == 0 
+    optInputs.T1 = 100; % for unconditional selection, T1 set to a value that will not affect future calculations
     Tgts.meanReq = log(sa);
 end
 
@@ -387,11 +388,6 @@ for i=1:length(optInputs.PerTgt)
     end
 end
 
-% if optInputs.cond == 1
-%     Tgts.covReq(:,rec) = 1e-17;
-%     Tgts.covReq(rec,:) = 1e-17;
-% end
-
 %% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
 
 % Set initial seed for simulation
@@ -404,7 +400,7 @@ end
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
     gmCell{j} = zeros(optInputs.nGM,length(optInputs.PerTgt));
-    gmCell{j}(:,:) = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
+    gmCell{j}(:,notT1) = exp(lhsnorm(Tgts.meanReq(notT1),Tgts.covReq(notT1,notT1),optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
     devMeanSim = mean(log(gmCell{j})) - Tgts.meanReq;
     devSkewSim = skewness(log(gmCell{j}),1);
     devSigSim = std(log(gmCell{j})) - sqrt(diag(Tgts.covReq))';
@@ -413,6 +409,7 @@ for j=1:nTrials
                      (optInputs.weights(1)+optInputs.weights(2)) * sum(devSkewSim.^2);
 end
 
+% add back in T1 value for mean
 [tmp, recUse] = min(abs(devTotalSim));
 gm = gmCell{recUse};
 
@@ -486,10 +483,10 @@ Tgts.sigs = sqrt(diag(Tgts.covReq))';
 origMeans = exp(mean(IMs.sampleSmall));
 origSigs = std(IMs.sampleSmall);
 
-% Compute maximum percent error from target
 % Remove the period (index) all spectra are scaled to for conditional selection
-notT1 = find(optInputs.PerTgt ~= optInputs.T1);
+notT1 = find(optInputs.PerTgt ~= optInputs.T1); 
 
+% Compute maximum percent error from target
 meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
 sigErr = max(abs(origSigs(notT1)-Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
 
@@ -532,8 +529,8 @@ end
 
     
 if (showPlots)
-    [recPer, recPer1, ~] = unique(recPer);
-    PerTgt1 = perKnown(recPer);
+%     [recPer, recPer1, ~] = unique(recPer);
+%     PerTgt1 = perKnown(recPer);
 
     % Plot simulated response spectra -- move with the rest of the figures 
     figure
@@ -591,8 +588,8 @@ if (showPlots)
     figure
     loglog(optInputs.PerTgt,Tgts.means,'k','linewidth',1)
     hold on
-    loglog(PerTgt1, origMeans(recPer1),'r*', 'linewidth',2)
-    loglog(PerTgt1,exp(mean(IMs.sampleSmall(:,recPer1))),'b--','linewidth',1)
+    loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
+    loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall(:,:))),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
     xlabel('T (s)');
     ylabel('Median S_a (g)');
@@ -605,7 +602,7 @@ if (showPlots)
     semilogx(optInputs.PerTgt,Tgts.sigs,'k','linewidth',1)
     hold on
     semilogx(PerTgt1, origSigs(recPer1),'r*','linewidth',2)
-    semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
+    semilogx(PerTgt1,std(IMs.sampleSmall(:,recPer1)),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
     xlabel('T (s)');
     ylabel('Standard deviation of lnS_a');
