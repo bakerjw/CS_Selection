@@ -243,7 +243,7 @@ outputFile           = 'Output_File.dat';
 optInputs.tol        = 15; 
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),50);
 nTrials              = 20;
-optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
+optInputs.optType    = 1; % 0 for SSE, 1 for KS-test
 seedValue            = 1; % default will be set to 0
 allowedVs30          = [200 900];
 allowedMag           = [5.5 inf];
@@ -469,14 +469,10 @@ for i = 1:optInputs.nGM
 end
 
 %  display correlations before optimization 
-% 
 % if (checkCorr)
-%     if optInputs.cond == 1
-%         conditionalCovariance
-%     elseif optInputs.cond == 0
-%         unconditionalCovariance
-%     end
+%     correlationComparison;
 % end
+
 %% Skip greedy optimization if the user-defined tolerance for maximum 
 % percent error between the target and sample means and standard deviations
 % have been attained
@@ -490,11 +486,11 @@ origMeans = exp(mean(IMs.sampleSmall));
 origSigs = std(IMs.sampleSmall);
 
 % Remove the period (index) all spectra are scaled to for conditional selection
-% notT1 = optInputs.PerTgt(~rec); 
+notT1 = find(optInputs.PerTgt ~= optInputs.T1); 
 
 % Compute maximum percent error from target
 meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
-sigErr = max(abs(origSigs(~rec)-Tgts.sigs(~rec))./Tgts.sigs(~rec))*100;
+sigErr = max(abs(origSigs(notT1)-Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
 
 % Display the original maximum error between the selected gm and the target
 fprintf('End of simulation stage \n')

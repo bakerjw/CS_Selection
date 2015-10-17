@@ -58,6 +58,9 @@ if optInputs.cond == 0
     display('The algorithm is slower when scaling is used');
 end
 
+% Initialize scale factor vector
+scaleFac = ones(optInputs.nBig,1);
+
 for k=1:optInputs.nLoop % Number of passes
     
     for i=1:optInputs.nGM % Selects nGM ground motions
@@ -73,8 +76,6 @@ for k=1:optInputs.nLoop % Number of passes
             elseif optInputs.cond == 0
                 [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.sigs, optInputs.weights, optInputs.maxScale);
             end
-        else
-            scaleFac = ones(optInputs.nBig,1);
         end
         
         % Try to add a new spectra to the subset list
@@ -148,6 +149,8 @@ for k=1:optInputs.nLoop % Number of passes
     fprintf('End of loop %1.0f of %1.0f \n', k, optInputs.nLoop)
     fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
     fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', sigErr); 
+    
+    % If error is now within the tolerance, break out of optimization
     if meanErr < optInputs.tol && sigErr < optInputs.tol
         display('The percent errors between chosen and target spectra are now within the required tolerances.');
         break;
