@@ -175,7 +175,7 @@ arb                  = 2;
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
+optInputs.nGM        = 10;
 optInputs.T1         = 1.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -325,11 +325,6 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 
 
 %% Determine target spectra using ground-motion model 
-% Compute predicted median and log-standard-deviation using the Campbell 
-% and Borzognia GMPE (can be replaced if desired)
-% [sa, sigma] = CB_2008_nga (M_bar, optInputs.PerTgt, Rrup,...
-%                            Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
-
 perKnownCorr = perKnown; % might not be necessary, check
 if ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<T1) optInputs.T1 perKnown(perKnown>T1)];
@@ -337,31 +332,28 @@ end
 [sa, sigma] = CB_2008_nga (M_bar, perKnown, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
 
 % Estimate target means and covariances
-
 % (Log) Response Spectrum Mean: meanReq
 % for conditional selection, include epsilons
+% use scaleFacIndex to set value(s) at which to scale ground motions
 if optInputs.cond == 1 
+    rec = find(optInputs.PerTgt == optInputs.T1);
+    scaleFacIndex = rec; 
     rho = zeros(1,length(optInputs.PerTgt));  
     for i = 1:length(optInputs.PerTgt)
         rho(i) = baker_jayaram_correlation(optInputs.PerTgt(i), optInputs.T1);
     end
     Tgts.meanReq = log(sa(recPer)) + sigma(recPer).*eps_bar.*rho;
     optInputs.lnSa1 = Tgts.meanReq(optInputs.PerTgt == optInputs.T1);
-elseif optInputs.cond == 0 
-    optInputs.T1 = 100; % for unconditional selection, T1 set to a value that will not affect future calculations
+elseif optInputs.cond == 0
+    rec = [];
+    scaleFacIndex = [1:numPer]';
+    % for unconditional selection, T1 set to a value that will not affect future calculations
+    optInputs.T1 = 100; 
     Tgts.meanReq = log(sa(recPer));
 end
 
-% (Log) Response Spectrum Covariance: covReq
-% Determine the relevant record and standard deviation/variance for T1
-% (will only be used in conditional selection)
-rec = find(optInputs.PerTgt == optInputs.T1);
-varT = sigma(rec)^2;
-sigma22 = varT;
-
-Tgts.covReq = zeros(length(optInputs.PerTgt));
+% Estimate covariances at all available periods from the Baker and Jayaram (2008) model
 covReqPart = zeros(length(perKnownCorr));
-
 corrReq = zeros(length(perKnownCorr));
 for i=1:length(perKnownCorr)
     for j=1:length(perKnownCorr)
@@ -370,10 +362,12 @@ for i=1:length(perKnownCorr)
         Tj = perKnownCorr(j);
 
         % Means and variances
+        varT = sigma(rec)^2;
+        sigma22 = varT;
         var1 = sigma(i)^2;
         var2 = sigma(j)^2;
 
-        if optInputs.cond == 1 % variance will be zero at specified T1
+        if optInputs.cond == 1 
             sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
             sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
@@ -383,20 +377,26 @@ for i=1:length(perKnownCorr)
         elseif optInputs.cond == 0
             % Correlations
             covReqPart(i,j) = sqrt(var1*var2);
-            corrReq(i,j) = baker_jayraram_correlation(Ti,Tj);
+            corrReq(i,j) = baker_jayaram_correlation(Ti, Tj);
         end
 
     end
 end
 
-% Covariances
+% (Log) Response Spectrum Covariance: covReq
+% Determine the relevant record and standard deviation/variance for T1 from
+% the correlation structure above 
+% (will only be used in conditional selection)
 if useVar == 0
     Tgts.covReq = zeros(length(optInputs.PerTgt));
 else
     Tgts.covReq = corrReq(recPer,recPer).*covReqPart(recPer,recPer);
-    indexT1 = find(optInputs.PerTgt == optInputs.T1);
-    Tgts.covReq(indexT1,:) = repmat(1e-17,1,numPer);
-    Tgts.covReq(:,indexT1) = repmat(1e-17,numPer,1);
+    % for conditional selection only, ensure that variance will be zero at
+    % all values of T1 (but not exactly 0.0, for spectra simulations)
+    if optInputs.cond == 1
+        Tgts.covReq(rec,:) = repmat(1e-17,1,numPer);
+        Tgts.covReq(:,rec) = repmat(1e-17,numPer,1);
+    end
 end
 %% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
 
@@ -426,28 +426,24 @@ gm = gmCell{recUse};
 
 %% Find best matches to the simulated spectra from ground-motion database
 
-% initialize vectors
+% Initialize vectors
 optInputs.recID = zeros(optInputs.nGM,1);
 IMs.sampleSmall = [];
 finalScaleFac = ones(optInputs.nGM,1);
 
-% add flag? 
+% Match spectra from database to simulated spectra by calculating
+% difference between them. If a scale factor is greater than maximum scale
+% factor or if spectra is already chosen, set error to 1000000
 for i = 1:optInputs.nGM
     err = zeros(optInputs.nBig,1);
     scaleFac = ones(optInputs.nBig,1);
     
     for j=1:optInputs.nBig
-        
-        if (any(optInputs.recID == j)) % check for repeated spectra selection, set error to 1000000 if repeated, otherwise calculate error
+        if (any(optInputs.recID == j)) 
             err(j) = 1000000;
-        
         elseif optInputs.isScaled == 1
-            if optInputs.cond == 1
-                scaleFac(j) = exp(optInputs.lnSa1)/exp(IMs.sampleBig(j,optInputs.PerTgt == optInputs.T1));
-            elseif optInputs.cond == 0
-                scaleFac(j) = sum(exp(IMs.sampleBig(j,:)).*gm(i,:))/sum(exp(IMs.sampleBig(j,:)).^2);
-            end  
-            
+            % calculate scale factor based on scaleFacIndex
+            scaleFac(j) = sum(exp(IMs.sampleBig(j,scaleFacIndex)).*gm(i,scaleFacIndex))/sum(exp(IMs.sampleBig(j,scaleFacIndex)).^2);
             if scaleFac(j) > optInputs.maxScale
                 err(j) = 1000000;
             else
@@ -456,9 +452,8 @@ for i = 1:optInputs.nGM
         else
             err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
         end
-        
-      
     end
+    
     [tmp, optInputs.recID(i)] = min(err);
     if tmp >= 1000000
        display('Warning: Possible problem with simulated spectrum. No good matches found');
@@ -495,11 +490,11 @@ origMeans = exp(mean(IMs.sampleSmall));
 origSigs = std(IMs.sampleSmall);
 
 % Remove the period (index) all spectra are scaled to for conditional selection
-notT1 = find(optInputs.PerTgt ~= optInputs.T1); 
+% notT1 = optInputs.PerTgt(~rec); 
 
 % Compute maximum percent error from target
 meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
-sigErr = max(abs(origSigs(notT1)-Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
+sigErr = max(abs(origSigs(~rec)-Tgts.sigs(~rec))./Tgts.sigs(~rec))*100;
 
 % Display the original maximum error between the selected gm and the target
 fprintf('End of simulation stage \n')
