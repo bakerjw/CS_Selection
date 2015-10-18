@@ -46,18 +46,24 @@ function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOpt( optInputs
 % a data structure, but as a new and separate variable
 sampleSmall = IMs.sampleSmall;
 
+display('Please wait...This algorithm takes a few minutes depending on the number of records to be selected');
+if optInputs.cond == 0
+    display('The algorithm is slower when scaling is used');
+end
+if optInputs.optType == 1
+    display('The algorithm is slower when optimizing with the KS-test Dn statistic');
+end
+
 % if optimizing the ground motions by calculating the Dn value, first
-% calculate the emperical CDF values and initialize a vector of Dn values
+% calculate the emperical CDF values (which will be the same at each
+% period) and initialize a vector of Dn values
 if optInputs.optType == 1
     emp_cdf = linspace(0,1,optInputs.nGM+1);
     Dn = zeros(length(optInputs.PerTgt),1);
 end
 
-display('Please wait...This algorithm takes a few minutes depending on the number of records to be selected');
-if optInputs.cond == 0
-    display('The algorithm is slower when scaling is used');
-end
-
+% Initialize scale factor vector
+scaleFac = ones(optInputs.nBig,1);
 for k=1:optInputs.nLoop % Number of passes
     
     for i=1:optInputs.nGM % Selects nGM ground motions
@@ -69,12 +75,10 @@ for k=1:optInputs.nLoop % Number of passes
         
         if optInputs.isScaled == 1
             if optInputs.cond == 1
-                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.PerTgt == optInputs.T1));
+                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.rec));
             elseif optInputs.cond == 0
                 [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.sigs, optInputs.weights, optInputs.maxScale);
             end
-        else
-            scaleFac = ones(optInputs.nBig,1);
         end
         
         % Try to add a new spectra to the subset list
@@ -101,7 +105,7 @@ for k=1:optInputs.nLoop % Number of passes
             elseif optInputs.optType == 1
                 for h = 1:length(optInputs.PerTgt)
                     % Sort the lnSa values at each period and calculate the
-                    % normal CDF from this 
+                    % normal CDF 
                     sortedlnSa = [min(sampleSmall(:,h)); sort(sampleSmall(:,h))];
                     norm_cdf = normcdf(sortedlnSa,Tgts.meanReq(h),Tgts.sigs(h));
                     
@@ -111,7 +115,8 @@ for k=1:optInputs.nLoop % Number of passes
                 devTotal(j) = sum(Dn);   
             end
             
-            
+            % Scale factors for either type of optimization should not
+            % exceed the maximum
             if (scaleFac(j) > optInputs.maxScale)
                 devTotal(j) = devTotal(j) + 1000000;
             end
@@ -139,19 +144,23 @@ for k=1:optInputs.nLoop % Number of passes
     % specified tolerance? Recalculate new standard deviations of new
     % sampleSmall and then recalculate new maximum percent errors of means
     % and standard deviations 
-    notT1 = find(optInputs.PerTgt ~= optInputs.T1);
-    sigs = std(sampleSmall);
-    meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
-    sigErr = max(abs(sigs(notT1) - Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
-    
-    % Display the results
-    fprintf('End of loop %1.0f of %1.0f \n', k, optInputs.nLoop)
-    fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
-    fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', sigErr); 
-    if meanErr < optInputs.tol && sigErr < optInputs.tol
-        display('The percent errors between chosen and target spectra are now within the required tolerances.');
-        break;
+    if optInputs.optType == 0
+        notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec));
+        sigs = std(sampleSmall);
+        meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
+        sigErr = max(abs(sigs(notT1) - Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
+        fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
+        fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', sigErr);
+        
+        % If error is now within the tolerance, break out of the
+        % optimization
+        if meanErr < optInputs.tol && sigErr < optInputs.tol
+            display('The percent errors between chosen and target spectra are now within the required tolerances.');
+            break;
+        end
     end
+    
+    fprintf('End of loop %1.0f of %1.0f \n', k, optInputs.nLoop) 
 end
 
 display('100% done');
