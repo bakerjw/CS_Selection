@@ -29,7 +29,7 @@ if showPlots == 1
 %% contour plots
 
     figure
-    contour(perKnown, perKnown, corrReqSamp);
+    contour(perKnownCorr, perKnownCorr, corrReqSamp);
     set(gca,'yscale','log','xscale','log'); 
     axis square;
     xlabel('T_1');
@@ -41,7 +41,7 @@ if showPlots == 1
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
     figure
-    contour(perKnown, perKnown, corrReq);
+    contour(perKnownCorr, perKnownCorr, corrReq);
     set(gca,'yscale','log','xscale','log'); 
     axis square;
     xlabel('T_1');
@@ -55,7 +55,7 @@ if showPlots == 1
     % Error
     diffCorr = corrReqSamp-corrReq;
     figure
-    contour(perKnown,perKnown,diffCorr);
+    contour(perKnownCorr,perKnownCorr,diffCorr);
     set(gca, 'yscale', 'log','xscale','log');
     axis square;
     title('Difference in the correlation (sample-model)');

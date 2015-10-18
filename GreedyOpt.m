@@ -75,7 +75,7 @@ for k=1:optInputs.nLoop % Number of passes
         
         if optInputs.isScaled == 1
             if optInputs.cond == 1
-                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.PerTgt == optInputs.T1));
+                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.rec));
             elseif optInputs.cond == 0
                 [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.sigs, optInputs.weights, optInputs.maxScale);
             end
@@ -145,7 +145,7 @@ for k=1:optInputs.nLoop % Number of passes
     % sampleSmall and then recalculate new maximum percent errors of means
     % and standard deviations 
     if optInputs.optType == 0
-        notT1 = find(optInputs.PerTgt ~= optInputs.T1);
+        notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec));
         sigs = std(sampleSmall);
         meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
         sigErr = max(abs(sigs(notT1) - Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
