@@ -233,21 +233,27 @@ Rjb         = R_bar;
 %% Advanced user inputs  
 % The definitions for these inputs are documented in the sections above.
 % Most users will likely keep these default values.
-optInputs.isScaled   = 1;
-optInputs.maxScale   = 4;
-optInputs.weights    = [1.0 2.0];
-optInputs.nLoop      = 2;
-optInputs.penalty    = 0;
-checkCorr            = 1;
-outputFile           = 'Output_File.dat';
-optInputs.tol        = 15; 
-optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),50);
-nTrials              = 20;
-optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
-seedValue            = 1; % default will be set to 0
+
+% Choose limits to screen databases
 allowedVs30          = [200 900];
 allowedMag           = [6 inf];
 allowedD             = [0 30]; % could go up to 300 for simulated 
+
+% Advanced user inputs for optimization 
+optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),50);
+optInputs.isScaled   = 1;
+optInputs.maxScale   = 4;
+optInputs.tol        = 15; 
+optInputs.weights    = [1.0 2.0];
+optInputs.nLoop      = 2;
+optInputs.penalty    = 0;
+optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
+
+% Miscellaneous advanced inputs
+seedValue            = 1; % default will be set to 0
+nTrials              = 20;
+checkCorr            = 1;
+outputFile           = 'Output_File.dat';
 
 % User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
