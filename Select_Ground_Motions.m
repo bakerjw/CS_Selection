@@ -169,14 +169,14 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W1_meta_data.mat';
+databaseFile         = 'GP_sim_meta_data.mat';
 optInputs.cond       = 1;
-arb                  = 2; 
+arb                  = 1; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 10;
-optInputs.T1         = 1.21; 
+optInputs.nGM        = 20;
+optInputs.T1         = 1.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
 
@@ -246,7 +246,7 @@ nTrials              = 20;
 optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
 seedValue            = 1; % default will be set to 0
 allowedVs30          = [200 900];
-allowedMag           = [5.5 inf];
+allowedMag           = [6 inf];
 allowedD             = [0 30]; % could go up to 300 for simulated 
 
 % User inputs end here
@@ -342,11 +342,13 @@ perKnownCorr = perKnown; % might not be necessary, check
 if ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<optInputs.T1) optInputs.T1 perKnown(perKnown>optInputs.T1)];
     perKnownT1 = find(perKnownCorr == optInputs.T1);
+else 
+    perKnownT1 = find(perKnownCorr == optInputs.T1);
 end
 [saCorr, sigmaCorr] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
 if exist('perKnownT1')
     sa = saCorr;
-    sa(perKnownT1) = [];
+    sa(perKnownT1) = []; % remove values at T1
     sigma = sigmaCorr;
     sigma(perKnownT1) = [];
 end
@@ -356,7 +358,7 @@ end
 % for conditional selection, include epsilons
 % use scaleFacIndex to set value(s) at which to scale ground motions
 if optInputs.cond == 1 
-    scaleFacIndex = optInputs.rec; 
+    scaleFacIndex = optInputs.rec; % optInputs.T1index
     rho = zeros(1,length(optInputs.PerTgt));  
     for i = 1:length(optInputs.PerTgt)
         rho(i) = baker_jayaram_correlation(optInputs.PerTgt(i), optInputs.T1);
