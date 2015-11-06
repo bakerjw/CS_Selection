@@ -40,7 +40,7 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Load workspace containing ground-motion information. 
+%% Variable definitions and initial set of user inputs
 % Specify a database with a needed ground motion data. Provided databases
 % include 'NGA_W1_meta_data.mat', 'NGA_W2_meta_data.mat' and
 % 'GM_sim_meta_data.mat' Further documentation of these databases can be 
@@ -186,7 +186,7 @@ showPlots            = 1;
 % MORE user input in the next cell
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Determination of target mean and covariances
+%% User inputs for determination of target mean and covariances
 
 % The Campbell and Bozorgnia (2008) ground-motion model is used in this
 % code. The input variables defined below are the inputs required for this
