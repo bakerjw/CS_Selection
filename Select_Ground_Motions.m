@@ -240,7 +240,7 @@ allowedMag           = [6 inf];
 allowedD             = [0 30]; % could go up to 300 for simulated 
 
 % Advanced user inputs for optimization 
-optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),50);
+optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
 optInputs.isScaled   = 1;
 optInputs.maxScale   = 4;
 optInputs.tol        = 15; 
@@ -280,6 +280,12 @@ end
 
 % Create variable for known periods
 perKnown = Periods;
+
+% For unconditional selection, set T1 to a value that will not affect
+% calculations
+if optInputs.cond == 0
+    optInputs.T1 = 100;
+end
 % More fields available in databases that can also be used in screening 
 % (e.g. the ones shown below)
 
@@ -292,36 +298,26 @@ perKnown = Periods;
 
 %% Arrange available spectra in usable format and check for invalid values
 
-% Modify perTgt to include T1 if running a conditional selection
+% Match periods (known periods and periods for error computations)
+recPer = zeros(length(optInputs.PerTgt),1);
+for i=1:length(optInputs.PerTgt)
+    [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
+end
+
+% redefine PerTgt as periods provided in databases
+optInputs.PerTgt = perKnown(recPer);
+
+% Modify PerTgt to include T1 if running a conditional selection
 if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
     optInputs.PerTgt = [optInputs.PerTgt(optInputs.PerTgt<optInputs.T1)...
         optInputs.T1 optInputs.PerTgt(optInputs.PerTgt>optInputs.T1)];
-end
-
-% Match periods (known periods and periods for error computations)
-recPerOrig = zeros(length(optInputs.PerTgt),1);
-for i=1:length(optInputs.PerTgt)
-    [~ , recPerOrig(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
+    optInputs.rec = find(optInputs.PerTgt == optInputs.T1);
 end
 
 % remove any repeated values from PerTgt (this can occur if the specified
 % conditioning period matches a period already in perKnown)
-recPer = unique(recPerOrig);
-[repIndex, bin] = histc(recPerOrig, recPer);
-multiples = find(repIndex > 1);
-rec = find(ismember(bin, multiples));
-optInputs.PerTgt = perKnown(recPer);
-numPer = length(recPer);
-
-if ~isempty(rec)
-    optInputs.rec = rec(1);
-elseif optInputs.cond == 1
-    optInputs.rec = find(optInputs.PerTgt == optInputs.T1);
-elseif optInputs.cond == 0
-    % for unconditional selection, T1 set to a value that will not affect future calculations
-    optInputs.T1 = 100; 
-    optInputs.rec = [];
-end
+optInputs.PerTgt = unique(optInputs.PerTgt);
+numPer = length(optInputs.PerTgt);
 
 % Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
@@ -345,17 +341,17 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 
 %% Determine target spectra using ground-motion model 
 perKnownCorr = perKnown; % might not be necessary, check
-if ~any(perKnown == optInputs.T1)
+if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<optInputs.T1) optInputs.T1 perKnown(perKnown>optInputs.T1)];
     perKnownT1 = find(perKnownCorr == optInputs.T1);
-else 
-    perKnownT1 = find(perKnownCorr == optInputs.T1);
 end
+
 [saCorr, sigmaCorr] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
-if exist('perKnownT1')
-    sa = saCorr;
+sa = saCorr;
+sigma = sigmaCorr;
+
+if ~exist('perKnownT1')
     sa(perKnownT1) = []; % remove values at T1
-    sigma = sigmaCorr;
     sigma(perKnownT1) = [];
 end
 
