@@ -176,7 +176,7 @@ RotD                 = 50;
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 20;
-optInputs.T1         = 1.5; 
+optInputs.T1         = 1.67; 
 Tmin                 = 0.1;
 Tmax                 = 10;
 
@@ -311,12 +311,12 @@ optInputs.PerTgt = perKnown(recPer);
 if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
     optInputs.PerTgt = [optInputs.PerTgt(optInputs.PerTgt<optInputs.T1)...
         optInputs.T1 optInputs.PerTgt(optInputs.PerTgt>optInputs.T1)];
-    optInputs.rec = find(optInputs.PerTgt == optInputs.T1);
 end
 
 % remove any repeated values from PerTgt (this can occur if the specified
 % conditioning period matches a period already in perKnown)
 optInputs.PerTgt = unique(optInputs.PerTgt);
+optInputs.rec = find(optInputs.PerTgt == optInputs.T1);
 numPer = length(optInputs.PerTgt);
 
 % Screen the records to be considered
@@ -339,36 +339,58 @@ optInputs.nBig = size(IMs.sampleBig,1);
 fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 
 
-%% Determine target spectra using ground-motion model 
-perKnownCorr = perKnown; % might not be necessary, check
+%% Determine target spectra and database correlations using ground-motion model 
+
+% arrange periods for which correlations will be calculated
+perKnownCorr = perKnown;
 if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<optInputs.T1) optInputs.T1 perKnown(perKnown>optInputs.T1)];
-    perKnownT1 = find(perKnownCorr == optInputs.T1);
 end
 
+% find the T1 value in the new known periods matrix (if it exists)
+perKnownRec = find(perKnownCorr == optInputs.T1);
+
+% compute the target response spectrum values from the Campbell and
+% Bozorgnia GMPE
 [saCorr, sigmaCorr] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
 sa = saCorr;
 sigma = sigmaCorr;
 
-if ~exist('perKnownT1')
-    sa(perKnownT1) = []; % remove values at T1
-    sigma(perKnownT1) = [];
-end
-
 % Estimate target means and covariances
 % (Log) Response Spectrum Mean: meanReq
-% for conditional selection, include epsilons
-% use scaleFacIndex to set value(s) at which to scale ground motions
 if optInputs.cond == 1 
+    % define the index needed for scaling
     scaleFacIndex = optInputs.rec; % optInputs.T1index
-    rho = zeros(1,length(optInputs.PerTgt));  
-    for i = 1:length(optInputs.PerTgt)
-        rho(i) = baker_jayaram_correlation(optInputs.PerTgt(i), optInputs.T1);
+    
+    % remove values at T1 in order to compute mean values to match known
+    % periods
+    if ~any(perKnown == optInputs.T1)
+    sa(perKnownRec) = []; 
+    sigma(perKnownRec) = [];
+    end
+    
+    % compute correlations for the conditional mean spectrum and the
+    % conditional mean spectrum
+    rho = zeros(1,length(recPer));  
+    for i = 1:length(recPer)
+        rho(i) = baker_jayaram_correlation(perKnown(recPer(i)), optInputs.T1);
     end
     Tgts.meanReq = log(sa(recPer)) + sigma(recPer).*eps_bar.*rho;
+    
+    % add back in sa and sigma at T1 if it is not in perKnown
+    if ~any(perKnown == optInputs.T1)
+        [saT1, sigmaT1] = CB_2008_nga (M_bar, optInputs.T1, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
+        rhoT1 = baker_jayaram_correlation(optInputs.T1, optInputs.T1);
+        Tgts.meanReq = [Tgts.meanReq(1:optInputs.rec-1) (log(saT1) + sigmaT1.*eps_bar.*rhoT1) ...
+                        Tgts.meanReq(optInputs.rec:end)];
+    end
+    
+    % define the spectral accleration at T1 that all ground motions will be
+    % scaled to
     optInputs.lnSa1 = Tgts.meanReq(optInputs.rec);
+    
 elseif optInputs.cond == 0
-    scaleFacIndex = [1:numPer]';
+    scaleFacIndex = (1:numPer)';
     Tgts.meanReq = log(sa(recPer));
 end
 
@@ -404,25 +426,27 @@ for i=1:length(perKnownCorr)
 end
 
 % (Log) Response Spectrum Covariance: covReq
-% Determine the relevant record and standard deviation/variance for T1 from
-% the correlation structure above 
-% (will only be used in conditional selection)
-corrReq1 = corrReq;
-corrReq1(perKnownT1,:) = []; corrReq1(:,perKnownT1) = [];
-covReqPart1 = covReqPart;
-covReqPart1(perKnownT1,:) = []; covReqPart1(:,perKnownT1) = [];
 if useVar == 0
     Tgts.covReq = zeros(length(optInputs.PerTgt));
 else
-    Tgts.covReq = corrReq1(recPer,recPer).*covReqPart1(recPer,recPer);
-    % for conditional selection only, ensure that variance will be zero at
-    % all values of T1 (but not exactly 0.0, for spectra simulations)
+    if ~any(perKnown == optInputs.T1)
+        corrReqNew = corrReq;
+        corrReqNew(perKnownRec,:) = []; corrReqNew(:,perKnownRec) = [];
+        covReqPartNew = covReqPart;
+        covReqPartNew(perKnownRec,:) = []; covReqPartNew(:,perKnownRec) = [];
+        Tgts.covReq = corrReqNew(recPer,recPer).*covReqPartNew(recPer,recPer);
+    else
+        Tgts.covReq = corrReq(recPer,recPer).*covReqPart(recPer,recPer);
+    end
+    
+    % for conditional selection only, ensure that variances will be zero at
+    % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
     if optInputs.cond == 1
-        Tgts.covReq(optInputs.rec,:) = repmat(1e-17,1,numPer);
-        Tgts.covReq(:,optInputs.rec) = repmat(1e-17,numPer,1);
+        Tgts.covReq = [Tgts.covReq(:,1:optInputs.rec-1) repmat(1e-17,length(recPer),1) Tgts.covReq(:,optInputs.rec:end)];
+        Tgts.covReq = [Tgts.covReq(1:optInputs.rec-1,:); repmat(1e-17,1,numPer); Tgts.covReq(optInputs.rec:end,:)];
     end
 end
-%% Simulate response spectra using Monte Carlo Simulation/Latin Hypercube Sampling
+%% Simulate response spectra using Monte Carlo Random Simulation/Latin Hypercube Sampling
 
 % Set initial seed for simulation
 if seedValue ~= 0
