@@ -169,14 +169,14 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W2_meta_data';
+databaseFile         = 'NGA_W1_meta_data';
 optInputs.cond       = 1;
 arb                  = 1; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
-optInputs.T1         = 1.67; 
+optInputs.nGM        = 30;
+optInputs.T1         = 1.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
 
@@ -217,7 +217,7 @@ showPlots            = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % User inputs begin here
 
-M_bar       = 6;
+M_bar       = 7.4;
 R_bar       = 10; 
 eps_bar     = 2; % for conditional selection
 Vs30        = 400;
@@ -235,9 +235,9 @@ Rjb         = R_bar;
 % Most users will likely keep these default values.
 
 % Choose limits to screen databases
-allowedVs30          = [200 900];
+allowedVs30          = [200 600];
 allowedMag           = [6 inf];
-allowedD             = [0 30]; % could go up to 300 for simulated 
+allowedD             = [0 10]; % could go up to 300 for simulated 
 
 % Advanced user inputs for optimization 
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
@@ -298,25 +298,24 @@ end
 
 %% Arrange available spectra in usable format and check for invalid values
 
-% Match periods (known periods and periods for error computations)
-recPer = zeros(length(optInputs.PerTgt),1);
-for i=1:length(optInputs.PerTgt)
-    [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
-end
-
-% redefine PerTgt as periods provided in databases
-optInputs.PerTgt = perKnown(recPer);
-
 % Modify PerTgt to include T1 if running a conditional selection
 if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
     optInputs.PerTgt = [optInputs.PerTgt(optInputs.PerTgt<optInputs.T1)...
         optInputs.T1 optInputs.PerTgt(optInputs.PerTgt>optInputs.T1)];
 end
 
-% remove any repeated values from PerTgt (this can occur if the specified
-% conditioning period matches a period already in perKnown)
-optInputs.PerTgt = unique(optInputs.PerTgt);
-optInputs.rec = find(optInputs.PerTgt == optInputs.T1);
+% Match periods (known periods and periods for error computations)
+recPer = zeros(length(optInputs.PerTgt),1);
+for i=1:length(optInputs.PerTgt)
+    [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
+end
+
+% remove any repeated values from PerTgt
+% redefine PerTgt as periods provided in databases
+recPer = unique(recPer);
+optInputs.PerTgt = perKnown(recPer);
+
+[~, optInputs.rec] = min(abs(optInputs.PerTgt - optInputs.T1));
 numPer = length(optInputs.PerTgt);
 
 % Screen the records to be considered
@@ -345,7 +344,7 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 perKnownCorr = perKnown;
 if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<optInputs.T1) optInputs.T1 perKnown(perKnown>optInputs.T1)];
-    perKnownCorr = perKnownCorr(find(perKnownCorr <=10));
+    perKnownCorr = perKnownCorr(perKnownCorr <=10);
 end
 
 % find the T1 value in the new known periods matrix (if it exists)
@@ -378,18 +377,7 @@ if optInputs.cond == 1
         rho(i) = baker_jayaram_correlation(perKnown(recPer(i)), optInputs.T1);
     end
     Tgts.meanReq = log(sa(recPer)) + sigma(recPer).*eps_bar.*rho;
-    
-    % add back in sa and sigma at T1 if it is not in perKnown
-    if ~any(perKnown == optInputs.T1)
-        [saT1, sigmaT1] = CB_2008_nga (M_bar, optInputs.T1, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
-        rhoT1 = baker_jayaram_correlation(optInputs.T1, optInputs.T1);
-        Tgts.meanReq = [Tgts.meanReq(1:optInputs.rec-1) (log(saT1) + sigmaT1.*eps_bar.*rhoT1) ...
-                        Tgts.meanReq(optInputs.rec:end)];
-        IMs.sampleBig = [IMs.sampleBig(:,1:optInputs.rec-1) repmat(Tgts.meanReq(optInputs.rec),length(allowedIndex),1)...
-                        IMs.sampleBig(:,optInputs.rec:end)];
-        optInputs.nBig = size(IMs.sampleBig,1);
-    end
-    
+        
     % define the spectral accleration at T1 that all ground motions will be
     % scaled to
     optInputs.lnSa1 = Tgts.meanReq(optInputs.rec);
@@ -447,8 +435,8 @@ else
     % for conditional selection only, ensure that variances will be zero at
     % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
     if optInputs.cond == 1
-        Tgts.covReq = [Tgts.covReq(:,1:optInputs.rec-1) repmat(1e-17,length(recPer),1) Tgts.covReq(:,optInputs.rec:end)];
-        Tgts.covReq = [Tgts.covReq(1:optInputs.rec-1,:); repmat(1e-17,1,numPer); Tgts.covReq(optInputs.rec:end,:)];
+        Tgts.covReq(optInputs.rec,:) = repmat(1e-17,1,numPer);
+        Tgts.covReq(:,optInputs.rec) = repmat(1e-17,numPer,1);
     end
 end
 %% Simulate response spectra using Monte Carlo Random Simulation/Latin Hypercube Sampling
