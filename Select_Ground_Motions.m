@@ -169,7 +169,7 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'GP_sim_meta_data.mat';
+databaseFile         = 'NGA_W2_meta_data';
 optInputs.cond       = 1;
 arb                  = 1; 
 RotD                 = 50; 
@@ -345,6 +345,7 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 perKnownCorr = perKnown;
 if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<optInputs.T1) optInputs.T1 perKnown(perKnown>optInputs.T1)];
+    perKnownCorr = perKnownCorr(find(perKnownCorr <=10));
 end
 
 % find the T1 value in the new known periods matrix (if it exists)
@@ -353,6 +354,7 @@ perKnownRec = find(perKnownCorr == optInputs.T1);
 % compute the target response spectrum values from the Campbell and
 % Bozorgnia GMPE
 [saCorr, sigmaCorr] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
+
 sa = saCorr;
 sigma = sigmaCorr;
 
@@ -383,6 +385,9 @@ if optInputs.cond == 1
         rhoT1 = baker_jayaram_correlation(optInputs.T1, optInputs.T1);
         Tgts.meanReq = [Tgts.meanReq(1:optInputs.rec-1) (log(saT1) + sigmaT1.*eps_bar.*rhoT1) ...
                         Tgts.meanReq(optInputs.rec:end)];
+        IMs.sampleBig = [IMs.sampleBig(:,1:optInputs.rec-1) repmat(Tgts.meanReq(optInputs.rec),length(allowedIndex),1)...
+                        IMs.sampleBig(:,optInputs.rec:end)];
+        optInputs.nBig = size(IMs.sampleBig,1);
     end
     
     % define the spectral accleration at T1 that all ground motions will be
@@ -468,7 +473,6 @@ for j=1:nTrials
                      (optInputs.weights(1)+optInputs.weights(2)) * sum(devSkewSim.^2);
 end
 
-% add back in T1 value for mean
 [tmp, recUse] = min(abs(devTotalSim));
 gm = gmCell{recUse};
 
@@ -495,7 +499,7 @@ for i = 1:optInputs.nGM
             if scaleFac(j) > optInputs.maxScale
                 err(j) = 1000000;
             else
-                err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2);
+                err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2); % take T1 out of gm
             end
         else
             err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
