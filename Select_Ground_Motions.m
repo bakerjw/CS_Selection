@@ -175,7 +175,7 @@ arb                  = 1;
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 30;
+optInputs.nGM        = 20;
 optInputs.T1         = 1.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -487,7 +487,7 @@ for i = 1:optInputs.nGM
             if scaleFac(j) > optInputs.maxScale
                 err(j) = 1000000;
             else
-                err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2); % take T1 out of gm
+                err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2); 
             end
         else
             err(j) = sum((IMs.sampleBig(j,:) - log(gm(i,:))).^2);
@@ -571,15 +571,12 @@ end
 
     
 if (showPlots)
-%     [recPer, recPer1, ~] = unique(recPer);
-%     PerTgt1 = perKnown(recPer);
-
     % Plot simulated response spectra -- move with the rest of the figures 
     figure
     loglog(optInputs.PerTgt, exp(Tgts.meanReq), '-r', 'linewidth', 3)
     hold on
     loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    loglog(optInputs.PerTgt,gm,'k');
+    loglog(optInputs.PerTgt,gm','k');
     loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
     xlabel('T (s)')
