@@ -19,7 +19,9 @@
 % modified by Cynthia Lee and Jack Baker
 % Modified 4/23/2015
 % Modified 7/7/2015 (Spring & Summer 2015)
-%
+% Modified 11/14/2015
+% Last Updated: 
+% 
 % Referenced manuscripts:
 %
 % N. Jayaram, T. Lin and and Baker, J. W. (2011). A computationally
@@ -29,6 +31,7 @@
 % Baker, J.W. (2011). The Conditional Mean Spectrum: A tool for ground
 % motion selection, ASCE Journal of Structural Engineering, 137(3), 322-331.
 %
+% ENTER NEW REPORT TITLE
 
 %% OUTPUT VARIABLES
 %
@@ -43,7 +46,7 @@
 %% Variable definitions and initial set of user inputs
 % Specify a database with a needed ground motion data. Provided databases
 % include 'NGA_W1_meta_data.mat', 'NGA_W2_meta_data.mat' and
-% 'GM_sim_meta_data.mat' Further documentation of these databases can be 
+% 'GP_sim_meta_data.mat' Further documentation of these databases can be 
 % found at 'WorkspaceDocumentation***.txt'.
 %
 % Variable definitions for loading data:
