@@ -13,7 +13,6 @@
 % values from NGA ground motion models, Earthquake Spectra, 24 (1), 299-317
 
 %% Observed correlations
-perKnown= perKnown(perKnown<=10); % omit long periods for which there is no GMPE
 sampleUse = [];
 sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)));
 sampleUse = [sampleUse(:,perKnown<optInputs.T1) interp1(perKnown,sampleUse',optInputs.T1)' sampleUse(:,perKnown>optInputs.T1)];
