@@ -1,16 +1,6 @@
-Documentation of the workspace 'GM_sim_meta_data.mat'
+Documentation of the workspace 'GP_sim_meta_data.mat'
 
-This workspace has been created based on the PEER NGA database ground motions (Chiou et al. 2008). The documentation of the variables provided here is based on the NGA Documentation file available at:
-http://peer.berkeley.edu/nga/documentation.html
-
-Not all the variables available in the workspace may be required for the ground-motion selection. The minimum requirements have been documented in Select_Ground_Motions.m
-
-Nirmal Jayaram, Ting Lin, Jack W. Baker
-Department of Civil and Environmental Engineering Stanford University
-Last Updated: 27 March 2010
-
-Referenced manuscripts:
-Chiou, B., R. Darragh, N. Gregor, and W. Silva (2008). NGA project strong-motion database. Earthquake Spectra 24(1), 23–44.
+This workspace has been created based on the SCEC BBP results from the 13.5 and 13.6 studies using the GP method.
  
 Downloading simulated time histories for selected records
 

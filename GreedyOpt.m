@@ -31,7 +31,7 @@ function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOpt( optInputs
 %                           covReq      : The target covariances (matrix)
 %                           means       : exp(meanReq) - formatted for
 %                                         plotting
-%                           sigs        : sqrt(diag(covReq)) - formatted
+%                           stdevs      : sqrt(diag(covReq)) - formatted
 %                                         for plotting
 %       IMs         : This structure represents the intensity measures
 %                     being optimized -
@@ -77,7 +77,7 @@ for k=1:optInputs.nLoop % Number of passes
             if optInputs.cond == 1
                 scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.rec));
             elseif optInputs.cond == 0
-                [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.sigs, optInputs.weights, optInputs.maxScale);
+                [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.stdevs, optInputs.weights, optInputs.maxScale);
             end
         end
         
@@ -92,13 +92,13 @@ for k=1:optInputs.nLoop % Number of passes
                 if optInputs.cond == 1 | (optInputs.cond == 0 && optInputs.isScaled == 0)
                     % Compute deviations from target
                     devMean = mean(sampleSmall) - Tgts.meanReq;
-                    devSig = std(sampleSmall) - Tgts.sigs;
+                    devSig = std(sampleSmall) - Tgts.stdevs;
                     devTotal(j) = optInputs.weights(1) * sum(devMean.^2) + optInputs.weights(2) * sum(devSig.^2);
                 end
                 % Penalize bad spectra (set penalty to zero if this is not required)
                 if optInputs.penalty ~= 0
                     for m=1:size(sampleSmall,1)
-                        devTotal(j) = devTotal(j) + sum(abs(exp(sampleSmall(m,:))>exp(Tgts.meanReq+3*Tgts.sigs'))) * optInputs.penalty;
+                        devTotal(j) = devTotal(j) + sum(abs(exp(sampleSmall(m,:))>exp(Tgts.meanReq+3*Tgts.stdevs'))) * optInputs.penalty;
                     end
                 end
                 
@@ -107,7 +107,7 @@ for k=1:optInputs.nLoop % Number of passes
                     % Sort the lnSa values at each period and calculate the
                     % normal CDF 
                     sortedlnSa = [min(sampleSmall(:,h)); sort(sampleSmall(:,h))];
-                    norm_cdf = normcdf(sortedlnSa,Tgts.meanReq(h),Tgts.sigs(h));
+                    norm_cdf = normcdf(sortedlnSa,Tgts.meanReq(h),Tgts.stdevs(h));
                     
                     % Calculate the Dn value
                     Dn(h) = max(abs(emp_cdf'-norm_cdf));
@@ -146,15 +146,15 @@ for k=1:optInputs.nLoop % Number of passes
     % and standard deviations 
     if optInputs.optType == 0
         notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec));
-        sigs = std(sampleSmall);
+        stdevs = std(sampleSmall);
         meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
-        sigErr = max(abs(sigs(notT1) - Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
+        stdErr = max(abs(stdevs(notT1) - Tgts.stdevs(notT1))./Tgts.stdevs(notT1))*100;
         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
-        fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', sigErr);
+        fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
         
         % If error is now within the tolerance, break out of the
         % optimization
-        if meanErr < optInputs.tol && sigErr < optInputs.tol
+        if meanErr < optInputs.tol && stdErr < optInputs.tol
             display('The percent errors between chosen and target spectra are now within the required tolerances.');
             break;
         end

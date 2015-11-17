@@ -19,7 +19,9 @@
 % modified by Cynthia Lee and Jack Baker
 % Modified 4/23/2015
 % Modified 7/7/2015 (Spring & Summer 2015)
-%
+% Modified 11/14/2015
+% Last Updated: 
+% 
 % Referenced manuscripts:
 %
 % N. Jayaram, T. Lin and and Baker, J. W. (2011). A computationally
@@ -29,6 +31,7 @@
 % Baker, J.W. (2011). The Conditional Mean Spectrum: A tool for ground
 % motion selection, ASCE Journal of Structural Engineering, 137(3), 322-331.
 %
+% ENTER NEW REPORT TITLE
 
 %% OUTPUT VARIABLES
 %
@@ -43,57 +46,59 @@
 %% Variable definitions and initial set of user inputs
 % Specify a database with a needed ground motion data. Provided databases
 % include 'NGA_W1_meta_data.mat', 'NGA_W2_meta_data.mat' and
-% 'GM_sim_meta_data.mat' Further documentation of these databases can be 
+% 'GP_sim_meta_data.mat' Further documentation of these databases can be 
 % found at 'WorkspaceDocumentation***.txt'.
 %
 % Variable definitions for loading data:
 % databaseFile : filename of the target database. 
-% cond      : 0 to run unconditional selection
-%             1 to run conditional
-% arb       : 1 for single-component selection and arbitrary component sigma
-%             2 for two-component selection and average component sigma
-% RotD      : 50 to use SaRotD50 data
-%           : 100 to use SaRotD100 data
+% cond         : 0 to run unconditional selection
+%                1 to run conditional
+% arb          : 1 for single-component selection and arbitrary component sigma
+%                2 for two-component selection and average component sigma
+% RotD         : 50 to use SaRotD50 data
+%              : 100 to use SaRotD100 data
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Certain variables are stored as parts of data structures which will later
 % be incorporated in the optimization portion of the code. Required user
-% input values are indicated for the user. Some of these are labelled as
+% input values are indicated for the user. Some of these are labeled as
 % advanced user inputs and are set to default values which the user may
 % choose to change. Other variables described below are calculated within
-% this script or other functions. These structures are as follows:
+% this script or other functions. The data structures are as follows:
 %
 % optInputs - input values needed to run the optimization function:
+%            optType    : For greedy optimization, the user will input a 0
+%                         to use the sum of squared errors approach to 
+%                         optimize the selected spectra, or a 1 to use 
+%                         D-statistic calculations from the KS-test
+%            tol        : User input percent error tolerance to determine
+%                         whether or not optimization can be skipped (this
+%                         will only be used for SSE optimization)
 %            nGM        : Number of ground motions to be selected 
+%            PerTgt     : Periods at which the target spectrum needs to be
+%                         computed (logarithmically spaced)
 %            T1         : Period at which spectra should be scaled and 
-%                         matched (for conditional selection only; for 
-%                         unconditional selection, set T1 to 100)
+%                         matched 
+%            nBig       : The number of allowed spectra
+%            recID      : This is a vector of index values for chosen
+%                         spectra
+%            rec        : This is the index of T1, the conditioning period
 %            isScaled   : Should spectra be scaled before matching (1 -YES,
 %                         0-NO). 
 %            maxScale   : Maximum allowable scale factor. 
+%            penalty    : If a penalty needs to be applied to avoid selecting
+%                         spectra that have spectral acceleration values 
+%                         beyond 3 sigma at any of the periods, set a value
+%                         here. Use 0 otherwise.
 %            weights    : [Weight for error in mean, Weight for error 
 %                         in standard deviation] e.g., [1.0,1.0] - equal 
-%                         weight for both errors.
+%                         weight for both errors (only needed for SSE
+%                         optimization)
 %            nLoop      : This is a meta-variable of the algorithm. The 
 %                         greedy improvement technique does several passes 
 %                         over the available data set and tries to improve 
 %                         the selected records. This variable denotes the 
 %                         number of passes. Recommended value: 2.
-%            penalty    : If a penalty needs to be applied to avoid selecting
-%                         spectra that have spectral acceleration values 
-%                         beyond 3 sigma at any of the periods, set a value
-%                         here. Use 0 otherwise.
-%            PerTgt     : Periods at which the target spectrum needs to be
-%                         computed (logarithmically spaced)
-%            tol        : User input percent error tolerance to determine
-%                         whether or not optimization can be skipped
-%            optType    : For greedy optimization, the user will input a 0
-%                         to use the sum of squared errors approach to 
-%                         optimize the selected spectra, or a 1 to use 
-%                         D-statistic calculations
-%            nBig       : The number of allowed spectra
-%            recID      : This is a vector of index values for chosen
-%                         spectra
 % 
 % Tgts      - The target values (means and covariances) being matched
 %            meanReq : Estimated target response spectrum means (vector of
@@ -102,7 +107,7 @@
 %            means   : The meanReq vector re-formatted to be equal to
 %                      exp(meanReq) in order to plot the means 
 %                      properly on a log scale
-%            sigs    : A vector of standard deviations at each period
+%            stdevs    : A vector of standard deviations at each period
 % 
 % IMs       - The intensity measure values (from SaKnown) chosen and the 
 %             values available:
@@ -119,11 +124,9 @@
 %             available ground-motion time histories (N).
 %             Usually, the structure's fundamental period.
 % Tmin      : Represents the shortest period at which the target spectrum 
-%             needs to be computed, where the shortest period will be
-%             10^(Tmin)
-% Tmax      : As above, the longest period will be 10^(Tmax)
-% numPer    : Number of periods for which the target spectrum needs to be
-%             computed between Tmin and Tmax
+%             needs to be computed
+% Tmax      : The longest period at which the target spectrum needs to be
+%             computed
 % checkCorr : If 1, this runs a code that compares the correlation
 %             structure of the selected ground motions to the correlations
 %             published by Baker and Jayaram (2008).
@@ -151,10 +154,6 @@
 %               searched
 % allowedD    : Only records with closest distances within this range will
 %               be searched
-% allowedIndex: Only records that meet a certain criteria for Vs30,
-%               magnitude, and closest distance values set by the previous
-%               three user input variables will be searched for the ground
-%               motion selection
 %
 % If a database other than the NGA database is used, also define the
 % following variables:
@@ -169,8 +168,8 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W1_meta_data';
-optInputs.cond       = 1;
+databaseFile         = 'NGA_W2_meta_data';
+optInputs.cond       = 0;
 arb                  = 1; 
 RotD                 = 50; 
 
@@ -187,7 +186,6 @@ showPlots            = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% User inputs for determination of target mean and covariances
-
 % The Campbell and Bozorgnia (2008) ground-motion model is used in this
 % code. The input variables defined below are the inputs required for this
 % model. The user can change the ground-motion model as long as any
@@ -235,9 +233,9 @@ Rjb         = R_bar;
 % Most users will likely keep these default values.
 
 % Choose limits to screen databases
-allowedVs30          = [200 600];
+allowedVs30          = [200 600]; 
 allowedMag           = [6 inf];
-allowedD             = [0 10]; % could go up to 300 for simulated 
+allowedD             = [0 10]; 
 
 % Advanced user inputs for optimization 
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
@@ -247,7 +245,7 @@ optInputs.tol        = 15;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
 optInputs.penalty    = 0;
-optInputs.optType    = 0; % 0 for SSE, 1 for KS-test
+optInputs.optType    = 0; 
 
 % Miscellaneous advanced inputs
 seedValue            = 1; % default will be set to 0
@@ -258,7 +256,8 @@ outputFile           = 'Output_File.dat';
 % User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load the user-chosen database and format according to type of selection
-load(databaseFile) % load the specified database
+% load the specified database
+load(databaseFile) 
 
 % Format appropriate variables for single or two-component selection
 if arb == 1
@@ -281,11 +280,6 @@ end
 % Create variable for known periods
 perKnown = Periods;
 
-% For unconditional selection, set T1 to a value that will not affect
-% calculations
-if optInputs.cond == 0
-    optInputs.T1 = 100;
-end
 % More fields available in databases that can also be used in screening 
 % (e.g. the ones shown below)
 
@@ -304,17 +298,20 @@ if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
         optInputs.T1 optInputs.PerTgt(optInputs.PerTgt>optInputs.T1)];
 end
 
-% Match periods (known periods and periods for error computations)
+% Match periods (known periods and periods for error computations) save the
+% indicies of the matched periods in perKnown
 recPer = zeros(length(optInputs.PerTgt),1);
 for i=1:length(optInputs.PerTgt)
     [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
 end
 
-% remove any repeated values from PerTgt
-% redefine PerTgt as periods provided in databases
+% Remove any repeated values from PerTgt and redefine PerTgt as periods 
+% provided in databases
 recPer = unique(recPer);
 optInputs.PerTgt = perKnown(recPer);
 
+% Identify the index of T1 within PerTgt and the final number of periods in
+% PerTgt
 [~, optInputs.rec] = min(abs(optInputs.PerTgt - optInputs.T1));
 numPer = length(optInputs.PerTgt);
 
@@ -344,8 +341,8 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 perKnownCorr = perKnown;
 if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<optInputs.T1) optInputs.T1 perKnown(perKnown>optInputs.T1)];
-    perKnownCorr = perKnownCorr(perKnownCorr <=10);
 end
+perKnownCorr = perKnownCorr(perKnownCorr <=10);
 
 % find the T1 value in the new known periods matrix (if it exists)
 perKnownRec = find(perKnownCorr == optInputs.T1);
@@ -370,8 +367,7 @@ if optInputs.cond == 1
     sigma(perKnownRec) = [];
     end
     
-    % compute correlations for the conditional mean spectrum and the
-    % conditional mean spectrum
+    % compute correlations and the conditional mean spectrum
     rho = zeros(1,length(recPer));  
     for i = 1:length(recPer)
         rho(i) = baker_jayaram_correlation(perKnown(recPer(i)), optInputs.T1);
@@ -383,6 +379,7 @@ if optInputs.cond == 1
     optInputs.lnSa1 = Tgts.meanReq(optInputs.rec);
     
 elseif optInputs.cond == 0
+%     optInputs.T1 = 100; % store this so that T1 will not affect later calculations
     scaleFacIndex = (1:numPer)';
     Tgts.meanReq = log(sa(recPer));
 end
@@ -422,7 +419,7 @@ end
 if useVar == 0
     Tgts.covReq = zeros(length(optInputs.PerTgt));
 else
-    if ~any(perKnown == optInputs.T1)
+    if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
         corrReqNew = corrReq;
         corrReqNew(perKnownRec,:) = []; corrReqNew(:,perKnownRec) = [];
         covReqPartNew = covReqPart;
@@ -448,10 +445,10 @@ else
     rng('shuffle');
 end
 
+% Generate simulated response spectra with best matches to the target values
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
     gmCell{j} = zeros(optInputs.nGM,length(optInputs.PerTgt));
-%     gmCell{j}(:,notT1) = exp(lhsnorm(Tgts.meanReq(notT1),Tgts.covReq(notT1,notT1),optInputs.nGM)); % can replace 'lhsnorm' with 'mvnrnd'
     gmCell{j} = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM));
     devMeanSim = mean(log(gmCell{j})) - Tgts.meanReq;
     devSkewSim = skewness(log(gmCell{j}),1);
@@ -460,7 +457,6 @@ for j=1:nTrials
                      optInputs.weights(2) * sum(devSigSim.^2)+ 0.1 * ...
                      (optInputs.weights(1)+optInputs.weights(2)) * sum(devSkewSim.^2);
 end
-
 [tmp, recUse] = min(abs(devTotalSim));
 gm = gmCell{recUse};
 
@@ -482,7 +478,6 @@ for i = 1:optInputs.nGM
         if (any(optInputs.recID == j)) 
             err(j) = 1000000;
         elseif optInputs.isScaled == 1
-            % calculate scale factor based on scaleFacIndex
             scaleFac(j) = sum(exp(IMs.sampleBig(j,scaleFacIndex)).*gm(i,scaleFacIndex))/sum(exp(IMs.sampleBig(j,scaleFacIndex)).^2);
             if scaleFac(j) > optInputs.maxScale
                 err(j) = 1000000;
@@ -508,41 +503,35 @@ for i = 1:optInputs.nGM
 
 end
 
-%  display correlations before optimization 
-% if (checkCorr)
-%     correlationComparison;
-% end
-
 %% Skip greedy optimization if the user-defined tolerance for maximum 
 % percent error between the target and sample means and standard deviations
 % have been attained
 
-% Format the target means and standard deviations and the means and
-% standard deviations of the originally selected ground motions so that they are
-% easily comparable. (stored for later comparison)
+% Format and store the target means and standard deviations and the means 
+% and standard deviations of the originally selected ground motions 
 Tgts.means = exp(Tgts.meanReq);
-Tgts.sigs = sqrt(diag(Tgts.covReq))';
+Tgts.stdevs = sqrt(diag(Tgts.covReq))';
 origMeans = exp(mean(IMs.sampleSmall));
-origSigs = std(IMs.sampleSmall);
+origStdevs = std(IMs.sampleSmall);
 
-% Remove the period (index) all spectra are scaled to for conditional selection
+% Define all other periods besides T1
 notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec)); 
 
 % Compute maximum percent error from target
 meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
-sigErr = max(abs(origSigs(notT1)-Tgts.sigs(notT1))./Tgts.sigs(notT1))*100;
+stdErr = max(abs(origStdevs(notT1)-Tgts.stdevs(notT1))./Tgts.stdevs(notT1))*100;
 
 % Display the original maximum error between the selected gm and the target
 fprintf('End of simulation stage \n')
 fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
-fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', sigErr); 
+fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr); 
 
 %% Greedy subset modification procedure
 % Call the optimization function if the user defined tolerance has not been
 % reached. Each nLoop, the error is recalculated and the loop will break if
 % the error has been reached
 
-if meanErr > optInputs.tol || sigErr > optInputs.tol 
+if meanErr > optInputs.tol || stdErr > optInputs.tol 
     [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
     IMs.sampleSmall = sampleSmall;
     
@@ -638,9 +627,9 @@ if (showPlots)
     
     % Sample, original sample, and target standard deviations
     figure
-    semilogx(optInputs.PerTgt,Tgts.sigs,'k','linewidth',1)
+    semilogx(optInputs.PerTgt,Tgts.stdevs,'k','linewidth',1)
     hold on
-    semilogx(optInputs.PerTgt, origSigs,'r*','linewidth',2)
+    semilogx(optInputs.PerTgt, origStdevs,'r*','linewidth',2)
     semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
     xlabel('T (s)');
