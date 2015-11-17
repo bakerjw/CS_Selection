@@ -168,7 +168,7 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W1_meta_data';
+databaseFile         = 'NGA_W2_meta_data';
 optInputs.cond       = 0;
 arb                  = 1; 
 RotD                 = 50; 
@@ -341,8 +341,8 @@ fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 perKnownCorr = perKnown;
 if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
     perKnownCorr = [perKnown(perKnown<optInputs.T1) optInputs.T1 perKnown(perKnown>optInputs.T1)];
-    perKnownCorr = perKnownCorr(perKnownCorr <=10);
 end
+perKnownCorr = perKnownCorr(perKnownCorr <=10);
 
 % find the T1 value in the new known periods matrix (if it exists)
 perKnownRec = find(perKnownCorr == optInputs.T1);
