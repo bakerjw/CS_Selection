@@ -33,9 +33,9 @@ if showPlots == 1
     axis square;
     xlabel('T_1');
     ylabel('T_2');
-    title('Sample correlation contour');
-    xlabel('T_1')
-    ylabel('T_2')
+    title('Sample correlation coefficients contour');
+    xlabel('T_1 (s)');
+    ylabel('T_2 (s)');
     colorbar('YLim',[0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
@@ -43,11 +43,9 @@ if showPlots == 1
     contour(perKnownCorr, perKnownCorr, corrReq);
     set(gca,'yscale','log','xscale','log'); 
     axis square;
-    xlabel('T_1');
-    ylabel('T_2');
-    title('Baker and Jayaram (2008) conditional correlation contour');
-    xlabel('T_1')
-    ylabel('T_2')
+    xlabel('T_1 (s)');
+    ylabel('T_2 (s)');
+    title('Target correlation coefficients contour');
     colorbar('YLim',[0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
@@ -57,7 +55,7 @@ if showPlots == 1
     contour(perKnownCorr,perKnownCorr,diffCorr);
     set(gca, 'yscale', 'log','xscale','log');
     axis square;
-    title('Difference in the correlation (sample-model)');
+    title('Difference in the correlation (sample-target)');
     xlabel('T_1 (s)');
     ylabel('T_2 (s)');
     colorbar('YLim',[-1 1]);

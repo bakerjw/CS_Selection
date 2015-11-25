@@ -169,7 +169,7 @@
 % selection
 
 databaseFile         = 'NGA_W2_meta_data';
-optInputs.cond       = 0;
+optInputs.cond       = 1;
 arb                  = 1; 
 RotD                 = 50; 
 
@@ -259,7 +259,9 @@ outputFile           = 'Output_File.dat';
 % load the specified database
 load(databaseFile) 
 
-% Format appropriate variables for single or two-component selection
+% Format appropriate ground motion metadata variables for single or two-
+% component selection. Additional metadata is available in the
+% databases and can be added here if desired.
 if arb == 1
     Filename    = [Filename_1; Filename_2];
     SaKnown     = [Sa_1; Sa_2]; 
@@ -280,22 +282,11 @@ end
 % Create variable for known periods
 perKnown = Periods;
 
-% More fields available in databases that can also be used in screening 
-% (e.g. the ones shown below)
-
-% mechanism = [mechanism; mechanism];
-% lowest_usable_freq = [lowest_usable_freq; lowest_usable_freq];
-% distance_jb = [distance_jb; distance_jb];
-% distance_hyp = [distance_hyp; distance_hyp];
-% distance_epi = [distance_epi; distance_epi];
-% distance_campbell = [distance_campbell; distance_campbell];
-
 %% Arrange available spectra in usable format and check for invalid values
 
 % Modify PerTgt to include T1 if running a conditional selection
 if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
-    optInputs.PerTgt = [optInputs.PerTgt(optInputs.PerTgt<optInputs.T1)...
-        optInputs.T1 optInputs.PerTgt(optInputs.PerTgt>optInputs.T1)];
+    optInputs.PerTgt = sort([optInputs.PerTgt optInputs.T1]);
 end
 
 % Match periods (known periods and periods for error computations) save the
@@ -323,16 +314,12 @@ recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
 
 % only the allowable records will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
-nAllowed = length(allowedIndex);
-
-SaKnown = SaKnown(allowedIndex,:);
-IMs.sampleBig = SaKnown(:,recPer);
+fprintf('Number of allowed ground motions = %i \n \n', length(allowedIndex))
 
 % Processing available spectra
-IMs.sampleBig = log(IMs.sampleBig);
+SaKnown = SaKnown(allowedIndex,:);
+IMs.sampleBig = log(SaKnown(:,recPer));
 optInputs.nBig = size(IMs.sampleBig,1);
-
-fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
 
 
 %% Determine target spectra and database correlations using ground-motion model 
@@ -363,8 +350,8 @@ if optInputs.cond == 1
     % remove values at T1 in order to compute mean values to match known
     % periods
     if ~any(perKnown == optInputs.T1)
-    sa(perKnownRec) = []; 
-    sigma(perKnownRec) = [];
+        sa(perKnownRec) = [];
+        sigma(perKnownRec) = [];
     end
     
     % compute correlations and the conditional mean spectrum
@@ -384,7 +371,7 @@ elseif optInputs.cond == 0
     Tgts.meanReq = log(sa(recPer));
 end
 
-% Estimate covariances at all available periods from the Baker and Jayaram (2008) model
+% Estimate covariances at all available periods 
 covReqPart = zeros(length(perKnownCorr));
 corrReq = zeros(length(perKnownCorr));
 for i=1:length(perKnownCorr)
@@ -467,20 +454,18 @@ optInputs.recID = zeros(optInputs.nGM,1);
 IMs.sampleSmall = [];
 finalScaleFac = ones(optInputs.nGM,1);
 
-% Match spectra from database to simulated spectra by calculating
-% difference between them. If a scale factor is greater than maximum scale
-% factor or if spectra is already chosen, set error to 1000000
+% Find database spectra most similar to the simluated spectra 
 for i = 1:optInputs.nGM
     err = zeros(optInputs.nBig,1);
     scaleFac = ones(optInputs.nBig,1);
     
     for j=1:optInputs.nBig
         if (any(optInputs.recID == j)) 
-            err(j) = 1000000;
+            err(j) = 1000000; % ground motion is already in the set--don't choose it again
         elseif optInputs.isScaled == 1
             scaleFac(j) = sum(exp(IMs.sampleBig(j,scaleFacIndex)).*gm(i,scaleFacIndex))/sum(exp(IMs.sampleBig(j,scaleFacIndex)).^2);
             if scaleFac(j) > optInputs.maxScale
-                err(j) = 1000000;
+                err(j) = 1000000; % required scale factor is too big--don't choose it
             else
                 err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(gm(i,:))).^2); 
             end
@@ -532,9 +517,7 @@ fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n'
 % the error has been reached
 
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
-    IMs.sampleSmall = sampleSmall;
-    
+    [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);    
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
     finalRecords = optInputs.recID;
