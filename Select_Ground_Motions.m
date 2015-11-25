@@ -17,9 +17,9 @@
 % Last Updated: 7 June 2010 
 %
 % modified by Cynthia Lee and Jack Baker
-% Modified 4/23/2015
-% Modified 7/7/2015 (Spring & Summer 2015)
-% Modified 11/14/2015
+% modified 4/23/2015
+% modified 7/7/2015 (Spring & Summer 2015)
+% modified 11/14/2015
 % Last Updated: 
 % 
 % Referenced manuscripts:
@@ -169,12 +169,12 @@
 % selection
 
 databaseFile         = 'NGA_W2_meta_data';
-optInputs.cond       = 0;
+optInputs.cond       = 1;
 arb                  = 1; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
+optInputs.nGM        = 100;
 optInputs.T1         = 1.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -234,8 +234,8 @@ Rjb         = R_bar;
 
 % Choose limits to screen databases
 allowedVs30          = [200 600]; 
-allowedMag           = [6 inf];
-allowedD             = [0 10]; 
+allowedMag           = [5 inf];
+allowedD             = [0 30]; 
 
 % Advanced user inputs for optimization 
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
@@ -532,7 +532,7 @@ fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n'
 % the error has been reached
 
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
+    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt_parfor1(optInputs, Tgts, IMs);
     IMs.sampleSmall = sampleSmall;
     
 else % otherwise, skip greedy optimization
