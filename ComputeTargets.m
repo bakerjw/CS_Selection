@@ -1,16 +1,31 @@
-function [ scaleIndex, corrMatrix, Targets ] = ComputeTargets( recPer, perKnown, perKnownCorr, ... 
-                                                            saCorr, sigmaCorr, useVar, eps_bar, optInputs )
-%%
-
+function [ scaleIndex, corrMatrix, Targets ] = ComputeTargets( recPer, perKnown, perKnownCorr, saCorr, sigmaCorr, useVar, eps_bar, optInputs )
+% ComputeTargets will calculate and return the target mean spectrum, target
+% covariance matrix, and target correlation matrix for ground motion
+% selection. The index/indicies of PerTgt that will need to be scaled
+% is also returned.These are computed from the resulting Sa and sigma 
+% values from the Campbell and Bozorgnia GMPE. The function accepts 
+% the following arguments:
+%           recPer          : periods at which target means will be
+%                             calculated
+%           perKnown        : available periods from the database
+%           perKnownCorr    : periods at which correlations will be
+%                             calculated
+%           saCorr          : spectral accelerations from the GMPE
+%           sigmaCorr       : standard deviations from the GMPE
+%           useVar          : user input for calculating variance
+%           eps_bar         : user input for epsilon (conditional
+%                             selection)
+%           optInputs       : optimization user inputs 
+%% Compute target mean spectrum from results of Campbell and Bozorgnia GMPE
+% Initialize variables for computing targets 
 perKnownRec = find(perKnownCorr == optInputs.T1);
 sa = saCorr;
 sigma = sigmaCorr; 
 
-% Estimate target means and covariances
 % (Log) Response Spectrum Mean: meanReq
+% Define indicies at which spectra will be scaled
 if optInputs.cond == 1 
-    % define the index needed for scaling
-    scaleIndex = optInputs.rec; % optInputs.T1index
+    scaleIndex = optInputs.rec; 
     
     % remove values at T1 in order to compute mean values to match known
     % periods

@@ -351,6 +351,7 @@ perKnownCorr = perKnownCorr(perKnownCorr <=10);
 % return target means and covariances within the structure "Tgts" 
 [scaleFacIndex, corrReq, Tgts] = ComputeTargets(recPer, perKnown, perKnownCorr, saCorr,...
                                                 sigmaCorr, useVar, eps_bar, optInputs);
+                                            
 %% Simulate response spectra using Monte Carlo Random Simulation/Latin Hypercube Sampling
 
 % Set initial seed for simulation
