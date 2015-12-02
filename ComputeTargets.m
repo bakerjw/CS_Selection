@@ -1,4 +1,4 @@
-function [ scaleIndex, corrMatrix, Targets ] = ComputeTargets( recPer, perKnown, perKnownCorr, saCorr, sigmaCorr, useVar, eps_bar, optInputs )
+function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer, perKnown, perKnownCorr, saCorr, sigmaCorr, useVar, eps_bar, optInputs )
 % ComputeTargets will calculate and return the target mean spectrum, target
 % covariance matrix, and target correlation matrix for ground motion
 % selection. The index/indicies of PerTgt that will need to be scaled

@@ -349,7 +349,7 @@ perKnownCorr = perKnownCorr(perKnownCorr <=10);
 
 % compute the target means, covariances, and correlations 
 % return target means and covariances within the structure "Tgts" 
-[scaleFacIndex, corrReq, Tgts] = ComputeTargets(recPer, perKnown, perKnownCorr, saCorr,...
+[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(recPer, perKnown, perKnownCorr, saCorr,...
                                                 sigmaCorr, useVar, eps_bar, optInputs);
                                             
 %% Simulate response spectra using Monte Carlo Random Simulation/Latin Hypercube Sampling
@@ -447,8 +447,10 @@ fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n'
 % reached. Each nLoop, the error is recalculated and the loop will break if
 % the error has been reached
 
+% numWorkers = 2;
+% parobj = parpool(numWorkers);
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt_parfor1(optInputs, Tgts, IMs);
+    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
     IMs.sampleSmall = sampleSmall;
     
 else % otherwise, skip greedy optimization
@@ -457,107 +459,12 @@ else % otherwise, skip greedy optimization
     finalScaleFactors = finalScaleFac;
 end
 
+% delete(parobj);
+
 %% Spectra Plots
 
-    % Variables used here
-    
-    % SaKnown    : As before, it contains the response spectra of all the
-    %              available ground motions (N*P matrix) - N ground motions,
-    %              P periods
-    % gm         : gm is a matrix of simulated response spectra defined
-    %              only at PerTgt
-    % sampleBig  : Same as SaKnown, but is only defined at PerTgt, the
-    %              periods at which the target response spectrum properties
-    %              are computed
-    % sampleSmall: The response spectra of the selected ground motions,
-    %              defined at PerTgt
-    % meanReq    : Target mean for the (log) response spectrum
-    % covReq     : Target covariance for the (log) response spectrum
-
-    
 if (showPlots)
-    % Plot simulated response spectra -- move with the rest of the figures 
-    figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), '-r', 'linewidth', 3)
-    hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    loglog(optInputs.PerTgt,gm','k');
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)')
-    ylabel('S_a (g)')
-    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of simulated ground motions')
-    title('Response spectra of simulated ground motions')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    
-    % Plot target and simulated means
-    figure
-    loglog(optInputs.PerTgt,exp(Tgts.meanReq))
-    hold on
-    loglog(optInputs.PerTgt,exp(mean(log(gm))),'--')
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)')
-    ylabel('Median S_a (g)')
-    legend('exp(Target mean lnS_a)','exp(Mean of simulated lnS_a)')
-    title('Target and simulated exponential logarithmic means (i.e., medians)')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-    % Plot target and simulated standard deviations
-    figure
-    semilogx(optInputs.PerTgt,sqrt(diag(Tgts.covReq))')
-    hold on
-    semilogx(optInputs.PerTgt,std(log(gm)),'--')
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
-    xlabel('T (s)')
-    ylabel('Standard deviation of lnS_a')
-    legend('Target standard deviation of lnS_a','Standard deviation of simulated lnS_a')
-    title('Target and simulated logarithmic standard deviations')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    
-    % Plot at all periods
-    figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), 'b', 'linewidth', 3)
-    hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    loglog(perKnown,SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)),'k');
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)');
-    ylabel('S_a (g)');
-    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
-    title ('Response spectra of selected ground motions');
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-    % Sample, original sample, and target means
-    figure
-    loglog(optInputs.PerTgt,Tgts.means,'k','linewidth',1)
-    hold on
-    loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
-    loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)');
-    ylabel('Median S_a (g)');
-    legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
-    title('Target and sample exponential logarithmic means (i.e., medians)')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    
-    % Sample, original sample, and target standard deviations
-    figure
-    semilogx(optInputs.PerTgt,Tgts.stdevs,'k','linewidth',1)
-    hold on
-    semilogx(optInputs.PerTgt, origStdevs,'r*','linewidth',2)
-    semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
-    xlabel('T (s)');
-    ylabel('Standard deviation of lnS_a');
-    legend('Target standard deviation of lnS_a','Standard deviation of originally selected lnS_a','Standard deviation of selected lnS_a');
-    title('Target and sample logarithmic standard deviations')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-end
-
-if (checkCorr)
-    correlationComparison;
+    plotResults;
 end
 
 %% Output data to file (best viewed with a text editor)
