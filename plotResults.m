@@ -96,20 +96,7 @@
 
 
 %% Correlation Comparison
-% This portion of the plot script is used to compare the covariance
-% structure of the selected ground motions with the covariance structure
-% provided by Baker and Jayaram (2008).
-%
-% Nirmal Jayaram, Ting Lin, Jack W. Baker Department of Civil and
-% Environmental Engineering Stanford University Last Updated: 11 March 2010
-%
-% Reference manuscripts:
-%
-% J. W. Baker and Jayaram, N. (2008). Correlation of spectral acceleration
-% values from NGA ground motion models, Earthquake Spectra, 24 (1), 299-317
-
-if (checkCorr)
-    %% Observed correlations
+% Observed correlations
 %     sampleUse = [];
     sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)));
     sampleUse = [sampleUse(:,perKnown<optInputs.T1) interp1(perKnown,sampleUse',optInputs.T1)' sampleUse(:,perKnown>optInputs.T1)];
@@ -159,5 +146,4 @@ if (checkCorr)
     colorbar('YLim',[-1 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
-end
 

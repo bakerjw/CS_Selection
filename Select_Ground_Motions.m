@@ -127,9 +127,6 @@
 %             needs to be computed
 % Tmax      : The longest period at which the target spectrum needs to be
 %             computed
-% checkCorr : If 1, this runs a code that compares the correlation
-%             structure of the selected ground motions to the correlations
-%             published by Baker and Jayaram (2008).
 % nTrials   : number of sets of response spectra that are simulated. The
 %             best set (in terms of matching means, variances and skewness
 %             is chosen as the seed). The user can also optionally rerun
@@ -250,7 +247,6 @@ optInputs.optType    = 0;
 % Miscellaneous advanced inputs
 seedValue            = 1; % default will be set to 0
 nTrials              = 20;
-checkCorr            = 1;
 outputFile           = 'Output_File.dat';
 
 % User inputs end here

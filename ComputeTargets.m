@@ -1,10 +1,10 @@
 function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer, perKnown, perKnownCorr, saCorr, sigmaCorr, useVar, eps_bar, optInputs )
 % ComputeTargets will calculate and return the target mean spectrum, target
 % covariance matrix, and target correlation matrix for ground motion
-% selection. The index/indicies of PerTgt that will need to be scaled
-% is also returned.These are computed from the resulting Sa and sigma 
-% values from the Campbell and Bozorgnia GMPE. The function accepts 
-% the following arguments:
+% selection. The index/indicies of PerTgt that will need to be scaled is
+% also returned. The predicted spectral accelerations and their
+% corresponding standard deviations can be computed using any GMPE the user
+% chooses. The function accepts the following arguments:
 %           recPer          : periods at which target means will be
 %                             calculated
 %           perKnown        : available periods from the database
