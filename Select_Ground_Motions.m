@@ -230,7 +230,7 @@ Rjb         = R_bar;
 % Most users will likely keep these default values.
 
 % Choose limits to screen databases
-allowedVs30          = [0 500]; 
+allowedVs30          = [0 Inf]; 
 allowedMag           = [4 9];
 allowedD             = [0 50]; 
 
