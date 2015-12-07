@@ -165,7 +165,7 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W1_meta_data';
+databaseFile         = 'GP_sim_meta_data';
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
@@ -329,6 +329,9 @@ optInputs.nBig = size(IMs.sampleBig,1);
 
 fprintf('Number of allowed ground motions = %i \n \n', length(allowedIndex))
 
+if isempty(allowedIndex)
+    error('There are no allowed ground motions. Please alter screening limits (lines 233-235)');
+end
 
 %% Determine target spectra and database correlations using ground-motion model 
 
