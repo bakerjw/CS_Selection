@@ -165,14 +165,14 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W2_meta_data';
+databaseFile         = 'NGA_W1_meta_data';
 optInputs.cond       = 1;
-arb                  = 1; 
+arb                  = 2; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
 optInputs.nGM        = 20;
-optInputs.T1         = 1.5; 
+optInputs.T1         = 0.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
 
@@ -212,10 +212,10 @@ showPlots            = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % User inputs begin here
 
-M_bar       = 7.4;
-R_bar       = 10; 
-eps_bar     = 2; % for conditional selection
-Vs30        = 400;
+M_bar       = 7.52;
+R_bar       = 11.6; 
+eps_bar     = 1.9524; % for conditional selection
+Vs30        = 259;
 Ztor        = 0;
 delta       = 90;
 lambda      = 180;
@@ -230,9 +230,9 @@ Rjb         = R_bar;
 % Most users will likely keep these default values.
 
 % Choose limits to screen databases
-allowedVs30          = [200 600]; 
-allowedMag           = [5 7];
-allowedD             = [0 30]; 
+allowedVs30          = [0 500]; 
+allowedMag           = [4 9];
+allowedD             = [0 50]; 
 
 % Advanced user inputs for optimization 
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
@@ -460,7 +460,7 @@ end
 %% Spectra Plots
 
 if (showPlots)
-    plotResults;
+    PlotResults;
 end
 
 %% Output data to file (best viewed with a text editor)

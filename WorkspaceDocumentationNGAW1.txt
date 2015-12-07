@@ -14,6 +14,10 @@ Referenced manuscripts:
 
 Chiou, B., R. Darragh, N. Gregor, and W. Silva (2008). NGA project strong-motion database. Earthquake Spectra 24(1), 23–44.
 
+Downloading time histories for selected ground motions:
+
+The links provided in the Output File will lead to the unscaled ground motion time histories of the selected records. 
+
 Variables:
  
 Filename_1        : Filename of the time history data file in 				    direction 1
