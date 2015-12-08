@@ -165,7 +165,7 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'NGA_W1_meta_data';
+databaseFile         = 'NGA_W2_meta_data';
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
@@ -230,9 +230,9 @@ Rjb         = R_bar;
 % Most users will likely keep these default values.
 
 % Choose limits to screen databases
-allowedVs30          = [0 Inf]; 
+allowedVs30          = [0 500]; 
 allowedMag           = [4 9];
-allowedD             = [0 50]; 
+allowedD             = [0 100]; 
 
 % Advanced user inputs for optimization 
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
