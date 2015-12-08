@@ -165,7 +165,7 @@
 % original NGA database does not contain RotD100 values for two-component
 % selection
 
-databaseFile         = 'GP_sim_meta_data';
+databaseFile         = 'NGA_W1_meta_data';
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
