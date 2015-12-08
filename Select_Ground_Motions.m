@@ -485,10 +485,10 @@ end
 % print record data
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
-    if arb == 1
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},[dirLocation Filename{rec}]); % Print relevant outputs
+    if arb == 1 
+        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
     else 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},[dirLocation Filename_1{rec}],[dirLocation Filename_2{rec}]);
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
     end
 end
 
