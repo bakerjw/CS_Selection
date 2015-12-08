@@ -1,17 +1,9 @@
 function [ sumDn ] = KS_stat( periods, emp_cdf, sampleSmall, means, stdevs )
-%UNTITLED3 Summary of this function goes here
-%   Detailed explanation goes here
+% calculate sum of all KS-test statistics 
 
-Dn = zeros(length(periods),1);
-for h = 1:length(periods)
-    % Sort the lnSa values at each period and calculate the
-    % normal CDF
-    sortedlnSa = [min(sampleSmall(:,h)); sort(sampleSmall(:,h))];
-    norm_cdf = normcdf(sortedlnSa,means(h),stdevs(h));
-    
-    % Calculate the Dn value
-    Dn(h) = max(abs(emp_cdf'-norm_cdf));
-    sumDn = sum(Dn);
-end
+sortedlnSa = [min(sampleSmall); sort(sampleSmall)];
+norm_cdf = normcdf(sortedlnSa,repmat(means,size(sampleSmall,1)+1,1),repmat(stdevs,size(sampleSmall,1)+1,1));
+Dn = max(abs(repmat(emp_cdf',1,length(periods)) - norm_cdf));
+sumDn = sum(Dn);
 
 end

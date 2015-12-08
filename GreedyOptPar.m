@@ -1,6 +1,5 @@
 function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOptPar( optInputs, Tgts, IMs )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+% Parallelized greedy optimization
 
 sampleSmall = IMs.sampleSmall;
 
@@ -38,7 +37,7 @@ for k=1:optInputs.nLoop % Number of passes
             if optInputs.cond == 1
                 scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.rec));
             elseif optInputs.cond == 0
-                [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.stdevs, optInputs.weights, optInputs.maxScale);
+                [scaleFac, devTotal] = bestScaleFactorPar(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.stdevs, optInputs.weights, optInputs.maxScale);
             end
         end
         

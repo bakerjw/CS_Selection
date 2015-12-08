@@ -171,7 +171,7 @@ arb                  = 2;
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
+optInputs.nGM        = 100;
 optInputs.T1         = 0.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
@@ -242,7 +242,7 @@ optInputs.tol        = 15;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
 optInputs.penalty    = 0;
-optInputs.optType    = 0; 
+optInputs.optType    = 1; 
 
 % Miscellaneous advanced inputs
 seedValue            = 1; % default will be set to 0
@@ -449,7 +449,7 @@ fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n'
 % numWorkers = 2;
 % parobj = parpool(numWorkers);
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
+    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOptPar(optInputs, Tgts, IMs);
     IMs.sampleSmall = sampleSmall;
     
 else % otherwise, skip greedy optimization
