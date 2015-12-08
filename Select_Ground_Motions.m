@@ -17,9 +17,9 @@
 % Last Updated: 7 June 2010 
 %
 % modified by Cynthia Lee and Jack Baker
-% Modified 4/23/2015
-% Modified 7/7/2015 (Spring & Summer 2015)
-% Modified 11/14/2015
+% modified 4/23/2015
+% modified 7/7/2015 (Spring & Summer 2015)
+% modified 11/14/2015
 % Last Updated: 
 % 
 % Referenced manuscripts:
@@ -127,9 +127,6 @@
 %             needs to be computed
 % Tmax      : The longest period at which the target spectrum needs to be
 %             computed
-% checkCorr : If 1, this runs a code that compares the correlation
-%             structure of the selected ground motions to the correlations
-%             published by Baker and Jayaram (2008).
 % nTrials   : number of sets of response spectra that are simulated. The
 %             best set (in terms of matching means, variances and skewness
 %             is chosen as the seed). The user can also optionally rerun
@@ -169,13 +166,13 @@
 % selection
 
 databaseFile         = 'NGA_W2_meta_data';
-optInputs.cond       = 0;
-arb                  = 1; 
+optInputs.cond       = 1;
+arb                  = 2; 
 RotD                 = 50; 
 
 % Choose number of ground motions and set requirements for periods
-optInputs.nGM        = 20;
-optInputs.T1         = 1.5; 
+optInputs.nGM        = 100;
+optInputs.T1         = 0.5; 
 Tmin                 = 0.1;
 Tmax                 = 10;
 
@@ -215,10 +212,10 @@ showPlots            = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % User inputs begin here
 
-M_bar       = 7.4;
-R_bar       = 10; 
-eps_bar     = 2; % for conditional selection
-Vs30        = 400;
+M_bar       = 7.52;
+R_bar       = 11.6; 
+eps_bar     = 1.9524; % for conditional selection
+Vs30        = 259;
 Ztor        = 0;
 delta       = 90;
 lambda      = 180;
@@ -233,9 +230,9 @@ Rjb         = R_bar;
 % Most users will likely keep these default values.
 
 % Choose limits to screen databases
-allowedVs30          = [200 600]; 
-allowedMag           = [6 inf];
-allowedD             = [0 10]; 
+allowedVs30          = [0 500]; 
+allowedMag           = [4 9];
+allowedD             = [0 100]; 
 
 % Advanced user inputs for optimization 
 optInputs.PerTgt     = logspace(log10(Tmin),log10(Tmax),30);
@@ -245,12 +242,11 @@ optInputs.tol        = 15;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
 optInputs.penalty    = 0;
-optInputs.optType    = 0; 
+optInputs.optType    = 1; 
 
 % Miscellaneous advanced inputs
 seedValue            = 1; % default will be set to 0
 nTrials              = 20;
-checkCorr            = 1;
 outputFile           = 'Output_File.dat';
 
 % User inputs end here
@@ -323,7 +319,6 @@ recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
 
 % only the allowable records will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
-nAllowed = length(allowedIndex);
 
 SaKnown = SaKnown(allowedIndex,:);
 IMs.sampleBig = SaKnown(:,recPer);
@@ -332,8 +327,11 @@ IMs.sampleBig = SaKnown(:,recPer);
 IMs.sampleBig = log(IMs.sampleBig);
 optInputs.nBig = size(IMs.sampleBig,1);
 
-fprintf('Number of allowed ground motions = %i \n \n', nAllowed)
+fprintf('Number of allowed ground motions = %i \n \n', length(allowedIndex))
 
+if isempty(allowedIndex)
+    error('There are no allowed ground motions. Please alter screening limits (lines 233-235)');
+end
 
 %% Determine target spectra and database correlations using ground-motion model 
 
@@ -344,98 +342,15 @@ if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
 end
 perKnownCorr = perKnownCorr(perKnownCorr <=10);
 
-% find the T1 value in the new known periods matrix (if it exists)
-perKnownRec = find(perKnownCorr == optInputs.T1);
-
-% compute the target response spectrum values from the Campbell and
-% Bozorgnia GMPE
+% compute the response spectrum values from the Campbell and
+% Bozorgnia GMPE at all periods for which correlations will be calculated
 [saCorr, sigmaCorr] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
 
-sa = saCorr;
-sigma = sigmaCorr;
-
-% Estimate target means and covariances
-% (Log) Response Spectrum Mean: meanReq
-if optInputs.cond == 1 
-    % define the index needed for scaling
-    scaleFacIndex = optInputs.rec; % optInputs.T1index
-    
-    % remove values at T1 in order to compute mean values to match known
-    % periods
-    if ~any(perKnown == optInputs.T1)
-    sa(perKnownRec) = []; 
-    sigma(perKnownRec) = [];
-    end
-    
-    % compute correlations and the conditional mean spectrum
-    rho = zeros(1,length(recPer));  
-    for i = 1:length(recPer)
-        rho(i) = baker_jayaram_correlation(perKnown(recPer(i)), optInputs.T1);
-    end
-    Tgts.meanReq = log(sa(recPer)) + sigma(recPer).*eps_bar.*rho;
-        
-    % define the spectral accleration at T1 that all ground motions will be
-    % scaled to
-    optInputs.lnSa1 = Tgts.meanReq(optInputs.rec);
-    
-elseif optInputs.cond == 0
-%     optInputs.T1 = 100; % store this so that T1 will not affect later calculations
-    scaleFacIndex = (1:numPer)';
-    Tgts.meanReq = log(sa(recPer));
-end
-
-% Estimate covariances at all available periods from the Baker and Jayaram (2008) model
-covReqPart = zeros(length(perKnownCorr));
-corrReq = zeros(length(perKnownCorr));
-for i=1:length(perKnownCorr)
-    for j=1:length(perKnownCorr)
-        % Periods
-        Ti = perKnownCorr(i);
-        Tj = perKnownCorr(j);
-
-        % Means and variances
-        varT = sigmaCorr(optInputs.rec)^2;
-        sigma22 = varT;
-        var1 = sigmaCorr(i)^2;
-        var2 = sigmaCorr(j)^2;
-
-        if optInputs.cond == 1 
-            sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
-            sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
-            sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
-            % Correlations
-            covReqPart(i,j) = sqrt(sigmaCond(1,1)*sigmaCond(2,2));
-            corrReq(i,j) = sigmaCond(1,2)/sqrt(sigmaCond(1,1)*sigmaCond(2,2));
-        elseif optInputs.cond == 0
-            % Correlations
-            covReqPart(i,j) = sqrt(var1*var2);
-            corrReq(i,j) = baker_jayaram_correlation(Ti, Tj);
-        end
-
-    end
-end
-
-% (Log) Response Spectrum Covariance: covReq
-if useVar == 0
-    Tgts.covReq = zeros(length(optInputs.PerTgt));
-else
-    if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
-        corrReqNew = corrReq;
-        corrReqNew(perKnownRec,:) = []; corrReqNew(:,perKnownRec) = [];
-        covReqPartNew = covReqPart;
-        covReqPartNew(perKnownRec,:) = []; covReqPartNew(:,perKnownRec) = [];
-        Tgts.covReq = corrReqNew(recPer,recPer).*covReqPartNew(recPer,recPer);
-    else
-        Tgts.covReq = corrReq(recPer,recPer).*covReqPart(recPer,recPer);
-    end
-    
-    % for conditional selection only, ensure that variances will be zero at
-    % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
-    if optInputs.cond == 1
-        Tgts.covReq(optInputs.rec,:) = repmat(1e-17,1,numPer);
-        Tgts.covReq(:,optInputs.rec) = repmat(1e-17,numPer,1);
-    end
-end
+% compute the target means, covariances, and correlations 
+% return target means and covariances within the structure "Tgts" 
+[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(recPer, perKnown, perKnownCorr, saCorr,...
+                                                sigmaCorr, useVar, eps_bar, optInputs);
+                                            
 %% Simulate response spectra using Monte Carlo Random Simulation/Latin Hypercube Sampling
 
 % Set initial seed for simulation
@@ -531,8 +446,10 @@ fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n'
 % reached. Each nLoop, the error is recalculated and the loop will break if
 % the error has been reached
 
+% numWorkers = 2;
+% parobj = parpool(numWorkers);
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);
+    [sampleSmall, finalRecords, finalScaleFactors] = GreedyOptPar(optInputs, Tgts, IMs);
     IMs.sampleSmall = sampleSmall;
     
 else % otherwise, skip greedy optimization
@@ -541,107 +458,12 @@ else % otherwise, skip greedy optimization
     finalScaleFactors = finalScaleFac;
 end
 
+% delete(parobj);
+
 %% Spectra Plots
 
-    % Variables used here
-    
-    % SaKnown    : As before, it contains the response spectra of all the
-    %              available ground motions (N*P matrix) - N ground motions,
-    %              P periods
-    % gm         : gm is a matrix of simulated response spectra defined
-    %              only at PerTgt
-    % sampleBig  : Same as SaKnown, but is only defined at PerTgt, the
-    %              periods at which the target response spectrum properties
-    %              are computed
-    % sampleSmall: The response spectra of the selected ground motions,
-    %              defined at PerTgt
-    % meanReq    : Target mean for the (log) response spectrum
-    % covReq     : Target covariance for the (log) response spectrum
-
-    
 if (showPlots)
-    % Plot simulated response spectra -- move with the rest of the figures 
-    figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), '-r', 'linewidth', 3)
-    hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    loglog(optInputs.PerTgt,gm','k');
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)')
-    ylabel('S_a (g)')
-    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of simulated ground motions')
-    title('Response spectra of simulated ground motions')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    
-    % Plot target and simulated means
-    figure
-    loglog(optInputs.PerTgt,exp(Tgts.meanReq))
-    hold on
-    loglog(optInputs.PerTgt,exp(mean(log(gm))),'--')
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)')
-    ylabel('Median S_a (g)')
-    legend('exp(Target mean lnS_a)','exp(Mean of simulated lnS_a)')
-    title('Target and simulated exponential logarithmic means (i.e., medians)')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-    % Plot target and simulated standard deviations
-    figure
-    semilogx(optInputs.PerTgt,sqrt(diag(Tgts.covReq))')
-    hold on
-    semilogx(optInputs.PerTgt,std(log(gm)),'--')
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
-    xlabel('T (s)')
-    ylabel('Standard deviation of lnS_a')
-    legend('Target standard deviation of lnS_a','Standard deviation of simulated lnS_a')
-    title('Target and simulated logarithmic standard deviations')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    
-    % Plot at all periods
-    figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), 'b', 'linewidth', 3)
-    hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    loglog(perKnown,SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)),'k');
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)');
-    ylabel('S_a (g)');
-    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
-    title ('Response spectra of selected ground motions');
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-    % Sample, original sample, and target means
-    figure
-    loglog(optInputs.PerTgt,Tgts.means,'k','linewidth',1)
-    hold on
-    loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
-    loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)');
-    ylabel('Median S_a (g)');
-    legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
-    title('Target and sample exponential logarithmic means (i.e., medians)')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    
-    % Sample, original sample, and target standard deviations
-    figure
-    semilogx(optInputs.PerTgt,Tgts.stdevs,'k','linewidth',1)
-    hold on
-    semilogx(optInputs.PerTgt, origStdevs,'r*','linewidth',2)
-    semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
-    xlabel('T (s)');
-    ylabel('Standard deviation of lnS_a');
-    legend('Target standard deviation of lnS_a','Standard deviation of originally selected lnS_a','Standard deviation of selected lnS_a');
-    title('Target and sample logarithmic standard deviations')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-end
-
-if (checkCorr)
-    correlationComparison;
+    PlotResults;
 end
 
 %% Output data to file (best viewed with a text editor)
@@ -657,16 +479,16 @@ fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});
 if arb == 1
     fprintf(fin,'%s \t %s \t %s \t %s \n','Record Number','Scale Factor','File Name','URL');
 elseif arb == 2
-    fprintf(fin,'%s \t %s \t %s \t %s \t %s \t %s \t %s \n','Record Number','NGA Record Sequence Number','Scale Factor','File Name Dir. 1','File Name Dir. 2','URL Dir 1','URL Dir 2');
+    fprintf(fin,'%s \t %s \t %s \t %s \t %s \t %s \t %s \n','Record Number','Record Sequence Number','Scale Factor','File Name Dir. 1','File Name Dir. 2', 'URL Dir. 1', 'URL Dir. 2');
 end
 
 % print record data
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
-    if arb == 1
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},[dirLocation Filename{rec}]); % Print relevant outputs
+    if arb == 1 
+        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
     else 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},[dirLocation Filename_1{rec}],[dirLocation Filename_2{rec}]);
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
     end
 end
 

@@ -3,7 +3,7 @@
 % yama4423@stanford.edu
 % fix bug 2009/05/05
 %
-% Campbell-Bozorgnia attenuation equation, 2008
+% Campbell-Bozorgnia attenuation equation, 2008 ** include full citation
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Input Variables
