@@ -1,8 +1,11 @@
 function [ devTotal ] = ParLoop( devTotal, scaleFac, optInputs, sampleSmall, sampleBig, meanReq, stdevs, emp_cdf )
 % Parallel loop to use within greedy optimization
+optType = optInputs.optType;
+if all(devTotal) && optType == 0 
+    return;
+end
 
 PerTgt = optInputs.PerTgt;
-optType = optInputs.optType;
 cond = optInputs.cond;
 isScaled = optInputs.isScaled;
 weights = optInputs.weights;
@@ -10,9 +13,7 @@ penalty = optInputs.penalty;
 maxScale = optInputs.maxScale;
 recID = optInputs.recID;
 
-if all(devTotal) && optType == 0 
-    return;
-end
+
 
 parfor j = 1:optInputs.nBig
     sampleSmallTemp = [sampleSmall;sampleBig(j,:)+log(scaleFac(j))];

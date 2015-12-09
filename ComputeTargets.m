@@ -30,8 +30,8 @@ if optInputs.cond == 1
     % remove values at T1 in order to compute mean values to match known
     % periods
     if ~any(perKnown == optInputs.T1)
-    sa(perKnownRec) = []; 
-    sigma(perKnownRec) = [];
+        sa(perKnownRec) = [];
+        sigma(perKnownRec) = [];
     end
     
     % compute correlations and the conditional mean spectrum
@@ -50,7 +50,7 @@ elseif optInputs.cond == 0
     Targets.meanReq = log(sa(recPer));
 end
 
-%% Estimate covariances at all available periods from the Baker and Jayaram (2008) model
+%% Estimate covariances at all available periods 
 covReqPart = zeros(length(perKnownCorr));
 corrMatrix = zeros(length(perKnownCorr));
 for i=1:length(perKnownCorr)
