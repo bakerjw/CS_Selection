@@ -59,7 +59,6 @@ end
 % period) and initialize a vector of Dn values
 if optInputs.optType == 1
     emp_cdf = linspace(0,1,optInputs.nGM+1);
-    Dn = zeros(length(optInputs.PerTgt),1);
 end
 
 % Initialize scale factor vector
@@ -102,16 +101,10 @@ for k=1:optInputs.nLoop % Number of passes
                     end
                 end
                 
-            elseif optInputs.optType == 1
-                for h = 1:length(optInputs.PerTgt)
-                    % Sort the lnSa values at each period and calculate the
-                    % normal CDF 
-                    sortedlnSa = [min(sampleSmall(:,h)); sort(sampleSmall(:,h))];
-                    norm_cdf = normcdf(sortedlnSa,Tgts.meanReq(h),Tgts.stdevs(h));
-                    
-                    % Calculate the Dn value
-                    Dn(h) = max(abs(emp_cdf'-norm_cdf));
-                end
+            elseif optInputs.optType == 1   
+                sortedlnSa = [min(sampleSmall); sort(sampleSmall)];
+                norm_cdf = normcdf(sortedlnSa,repmat(Tgts.meanReq,optInputs.nGM+1,1),repmat(Tgts.stdevs,optInputs.nGM+1,1));
+                Dn = max(abs(repmat(emp_cdf',1,length(optInputs.PerTgt)) - norm_cdf));
                 devTotal(j) = sum(Dn);   
             end
             
