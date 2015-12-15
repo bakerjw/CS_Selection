@@ -1,4 +1,4 @@
-function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer, perKnown, perKnownCorr, saCorr, sigmaCorr, useVar, eps_bar, optInputs )
+function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer, perKnown, perKnownCorr, sa, sigma, useVar, eps_bar, optInputs )
 % ComputeTargets will calculate and return the target mean spectrum, target
 % covariance matrix, and target correlation matrix for ground motion
 % selection. The index/indicies of PerTgt that will need to be scaled is
@@ -10,8 +10,8 @@ function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer
 %           perKnown        : available periods from the database
 %           perKnownCorr    : periods at which correlations will be
 %                             calculated
-%           saCorr          : spectral accelerations from the GMPE
-%           sigmaCorr       : standard deviations from the GMPE
+%           sa              : spectral accelerations from the GMPE
+%           sigma           : standard deviations from the GMPE
 %           useVar          : user input for calculating variance
 %           eps_bar         : user input for epsilon (conditional
 %                             selection)
@@ -19,8 +19,6 @@ function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer
 %% Compute target mean spectrum from results of Campbell and Bozorgnia GMPE
 % Initialize variables for computing targets 
 perKnownRec = find(perKnownCorr == optInputs.T1);
-sa = saCorr;
-sigma = sigmaCorr; 
 
 % (Log) Response Spectrum Mean: meanReq
 % Define indicies at which spectra will be scaled
@@ -50,7 +48,8 @@ elseif optInputs.cond == 0
     Targets.meanReq = log(sa(recPer));
 end
 
-%% Estimate covariances at all available periods 
+
+%% Compute covariances at all periods 
 covReqPart = zeros(length(perKnownCorr));
 corrMatrix = zeros(length(perKnownCorr));
 for i=1:length(perKnownCorr)
@@ -60,10 +59,10 @@ for i=1:length(perKnownCorr)
         Tj = perKnownCorr(j);
 
         % Means and variances
-        varT = sigmaCorr(optInputs.rec)^2;
+        varT = sigma(optInputs.rec)^2;
         sigma22 = varT;
-        var1 = sigmaCorr(i)^2;
-        var2 = sigmaCorr(j)^2;
+        var1 = sigma(i)^2;
+        var2 = sigma(j)^2;
 
         if optInputs.cond == 1 
             sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
@@ -81,7 +80,7 @@ for i=1:length(perKnownCorr)
     end
 end
 
-%% (Log) Response Spectrum Covariance: covReq
+%% Compute target conditional coveriance at periods of interest 
 if useVar == 0
     Targets.covReq = zeros(length(optInputs.PerTgt));
 else

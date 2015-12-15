@@ -1,11 +1,11 @@
-%% Spectra Plots
+%% Produce a number of plots of target and selected response spectra 
 
     % Variables used here
     
     % SaKnown    : As before, it contains the response spectra of all the
     %              available ground motions (N*P matrix) - N ground motions,
     %              P periods
-    % gm         : gm is a matrix of simulated response spectra defined
+    % simulatedSpectra  : a matrix of simulated response spectra defined
     %              only at PerTgt
     % sampleBig  : Same as SaKnown, but is only defined at PerTgt, the
     %              periods at which the target response spectrum properties
@@ -16,12 +16,12 @@
     % covReq     : Target covariance for the (log) response spectrum
 
     
-    % Plot simulated response spectra -- move with the rest of the figures 
+    % Plot simulated response spectra  
     figure
     loglog(optInputs.PerTgt, exp(Tgts.meanReq), '-r', 'linewidth', 3)
     hold on
     loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    loglog(optInputs.PerTgt,gm','k');
+    loglog(optInputs.PerTgt, simulatedSpectra','k');
     loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
     axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
     xlabel('T (s)')
@@ -30,31 +30,7 @@
     title('Response spectra of simulated ground motions')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
-    % Plot target and simulated means
-    figure
-    loglog(optInputs.PerTgt,exp(Tgts.meanReq))
-    hold on
-    loglog(optInputs.PerTgt,exp(mean(log(gm))),'--')
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
-    xlabel('T (s)')
-    ylabel('Median S_a (g)')
-    legend('exp(Target mean lnS_a)','exp(Mean of simulated lnS_a)')
-    title('Target and simulated exponential logarithmic means (i.e., medians)')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-
-    % Plot target and simulated standard deviations
-    figure
-    semilogx(optInputs.PerTgt,sqrt(diag(Tgts.covReq))')
-    hold on
-    semilogx(optInputs.PerTgt,std(log(gm)),'--')
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
-    xlabel('T (s)')
-    ylabel('Standard deviation of lnS_a')
-    legend('Target standard deviation of lnS_a','Standard deviation of simulated lnS_a')
-    title('Target and simulated logarithmic standard deviations')
-    set(findall(gcf,'-property','FontSize'),'FontSize',18)
-    
-    % Plot at all periods
+    % Plot selected response spectra
     figure
     loglog(optInputs.PerTgt, exp(Tgts.meanReq), 'b', 'linewidth', 3)
     hold on
@@ -68,7 +44,7 @@
     title ('Response spectra of selected ground motions');
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
-    % Sample, original sample, and target means
+    % Target, initial, and finally selected medians
     figure
     loglog(optInputs.PerTgt,Tgts.means,'k','linewidth',1)
     hold on
@@ -81,7 +57,7 @@
     title('Target and sample exponential logarithmic means (i.e., medians)')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
-    % Sample, original sample, and target standard deviations
+    % Target, initial, and finally selected standard deviations
     figure
     semilogx(optInputs.PerTgt,Tgts.stdevs,'k','linewidth',1)
     hold on
@@ -95,9 +71,7 @@
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
 
 
-%% Correlation Comparison
-% Observed correlations
-%     sampleUse = [];
+    % Compute sample correlations from selected spectra
     sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)));
     sampleUse = [sampleUse(:,perKnown<optInputs.T1) interp1(perKnown,sampleUse',optInputs.T1)' sampleUse(:,perKnown>optInputs.T1)];
     corrReqSamp = zeros(length(perKnownCorr));
@@ -108,8 +82,7 @@
         end
     end
     
-    %% contour plots
-    
+    % Contours of correlations from selected spectra
     figure
     contour(perKnownCorr, perKnownCorr, corrReqSamp);
     set(gca,'yscale','log','xscale','log');
@@ -122,6 +95,7 @@
     colorbar('YLim',[0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
+    % Contours of target correlations
     figure
     contour(perKnownCorr, perKnownCorr, corrReq);
     set(gca,'yscale','log','xscale','log');
@@ -132,7 +106,7 @@
     colorbar('YLim',[0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
-    % Error
+    % Difference between target and sample correlations
     diffCorr = corrReqSamp-corrReq;
     figure
     contour(perKnownCorr,perKnownCorr,diffCorr);

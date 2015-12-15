@@ -1,9 +1,11 @@
-% by Yoshifumi Yamamoto, 11/10/08
-% Stanford University
-% yama4423@stanford.edu
-% fix bug 2009/05/05
+% coded by Yoshifumi Yamamoto,  5/8/10
+%       Stanford University, yama4423@stanford.edu
 %
-% Campbell-Bozorgnia attenuation equation, 2008 ** include full citation
+% NGA Ground Motino Model for the Geometric Mean Horizontal Component of
+% PGA, PGV, PGD, and 5% Damped Linear Elastic Response Spectra for Periods
+% Ranging from 0.01 to 10s
+% Kenneth W. Campbell, and Yousef Bozorgnia
+% Earthquake Spectra, Volume 24, No.1, pages 139-171, February 2008
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Input Variables
@@ -27,7 +29,11 @@
 %                 prediction
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [Sa, sigma, period1] = CB_2008_nga (M, T, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb)
+function [Sa, sigma, period1] = CB_2008_nga (M, T, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb,A1100)
+
+if (nargin < 11) % no Hanging wall indicator supplied
+    A1100 = 0;
+end
 
 % Coefficients
 period = [0.01	0.02	0.03	0.05	0.075	0.1	0.15	0.2	0.25	0.3	0.4	0.5	0.75	1	1.5	2	3	4	5	7.5	10 0 -1 -10];
@@ -69,7 +75,7 @@ if(nT==1);
         sigma=zeros(1,nperi);
         period1=period(1:nperi);
         for i=1:1:nperi;
-            [Sa(i) sigma(i)] = CB_2008_nga_sub (M, i, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm);
+            [Sa(i), sigma(i)] = CB_2008_nga_sub (M, i, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm,A1100);
         end;
     end;
 end;
@@ -80,14 +86,12 @@ if(iflg==0);
     for it=1:1:nT;
         Teach=T(it);
         % interpolate between periods if neccesary    
-        if (length(find(period == Teach)) == 0)
-            T_low = max(period(find(period<Teach)));
-            T_hi = min(period(find(period>Teach)));
+        if (isempty(find(period == Teach, 1)))
+            T_low = max(period(period<Teach));
+            T_hi = min(period(period>Teach));
 
-%             [sa_low sigma_low] = CB_2008_nga (M, T_low, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm);
-%             [sa_hi sigma_hi] = CB_2008_nga (M, T_hi, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm);
-            [sa_low sigma_low] = CB_2008_nga (M, T_low, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
-            [sa_hi sigma_hi] = CB_2008_nga (M, T_hi, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb);
+            [sa_low, sigma_low] = CB_2008_nga (M, T_low, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, A1100);
+            [sa_hi,  sigma_hi]  = CB_2008_nga (M, T_hi,  Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, A1100);
 
             x = [log(T_low) log(T_hi)];
             Y_sa = [log(sa_low) log(sa_hi)];
@@ -96,12 +100,12 @@ if(iflg==0);
             sigma(it) = interp1(x,Y_sigma,log(Teach));
         else
             i = find(period == Teach); 
-            [Sa(it) sigma(it)] = CB_2008_nga_sub (M, i, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm);
+            [Sa(it), sigma(it)] = CB_2008_nga_sub (M, i, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm,A1100);
         end;
     end;
 end;
 
-function [Sa sigma] = CB_2008_nga_sub (M, ip, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm)
+function [Sa, sigma] = CB_2008_nga_sub (M, ip, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb, ffltz, fhngr, Frv, Fnm, fhngm,A1100)
 
 c0 = [-1.715	-1.68	-1.552	-1.209	-0.657	-0.314	-0.133	-0.486	-0.89	-1.171	-1.466	-2.569	-4.844	-6.406	-8.692	-9.701	-10.556	-11.212	-11.684	-12.505	-13.087	-1.715	0.954	-5.27];
 c1 = [0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.656	0.972	1.196	1.513	1.6	1.6	1.6	1.6	1.6	1.6	0.5	0.696	1.6];
@@ -119,16 +123,17 @@ c12 = [0.61	0.61	0.61	0.61	0.61	0.61	0.61	0.61	0.70	0.75	0.85	0.883	1	1	1	1	1	1	
 k1 = [865	865	908	1054	1086	1032	878	748	654	587	503	457	410	400	400	400	400	400	400	400	400	865	400	400];
 k2 = [-1.186	-1.219	-1.273	-1.346	-1.471	-1.624	-1.931	-2.188	-2.381	-2.518	-2.657	-2.669	-2.401	-1.955	-1.025	-0.299	0	0	0	0	0	-1.186	-1.955	0];
 k3 = [1.839	1.84	1.841	1.843	1.845	1.847	1.852	1.856	1.861	1.865	1.874	1.883	1.906	1.929	1.974	2.019	2.11	2.2	2.291	2.517	2.744	1.839	1.929	2.744];
-sigmac = [0.166	0.166	0.165	0.162	0.158	0.17	0.18	0.186	0.191	0.198	0.206	0.208	0.221	0.225	0.222	0.226	0.229	0.237	0.237	0.271	0.29	0.166	0.19	0.29];
-slny = [0.478   0.480   0.498   0.510   0.520   0.531   0.532   0.534   0.534   0.544   0.541   0.550   0.568   0.568   0.564   0.571   0.558   0.576   0.601   0.628   0.667   0.478   0.484   0.667];
-roh  = [1.000   0.999   0.989   0.963   0.922   0.898   0.890   0.871   0.852   0.831   0.785   0.735   0.628   0.534   0.411   0.331   0.289   0.261   0.200   0.174   0.174   1.000   0.691   0.174];
+slny = [0.478   0.480   0.489   0.510   0.520   0.531   0.532   0.534   0.534   0.544   0.541   0.550   0.568   0.568   0.564   0.571   0.558   0.576   0.601   0.628   0.667   0.478   0.484   0.667];
 tlny = [0.219   0.219   0.235   0.258   0.292   0.286   0.280   0.249   0.240   0.215   0.217   0.214   0.227   0.255   0.296   0.296   0.326   0.297   0.359   0.428   0.485   0.219   0.203   0.485];
+sigmac = [0.166	0.166	0.165	0.162	0.158	0.17	0.18	0.186	0.191	0.198	0.206	0.208	0.221	0.225	0.222	0.226	0.229	0.237	0.237	0.271	0.29	0.166	0.19	0.29];
+sigmat   = [0.526 0.528 0.543 0.572 0.596 0.603 0.601 0.589 0.585 0.585 0.583 0.590 0.612 0.623 0.637 0.643 0.646 0.648 0.700 0.760 0.825 0.526 0.525 0.825];
+sigmaarb = [0.551 0.553 0.567 0.594 0.617 0.627 0.628 0.618 0.616 0.618 0.618 0.626 0.650 0.662 0.675 0.682 0.686 0.690 0.739 0.807 0.874 0.551 0.558 0.874];
+roh  = [1.000   0.999   0.989   0.963   0.922   0.898   0.890   0.871   0.852   0.831   0.785   0.735   0.628   0.534   0.411   0.331   0.289   0.261   0.200   0.174   0.174   1.000   0.691   0.174];
 
 c = 1.88;
 n = 1.18;
 
 % Magnitude dependence
-
 if M <= 5.5;
     fmag = c0(ip) + c1(ip) * M;
 elseif M<=6.5;
@@ -138,15 +143,12 @@ else
 end;
 
 % Distance dependence
-
 fdis = (c4(ip) + c5(ip) * M) * log(sqrt(Rrup^2 + c6(ip)^2));
 
 % Style of faulting
-
 fflt = c7(ip) * Frv * ffltz + c8(ip) * Fnm;
 
 % Hanging-wall effects
-
 fhngz = ((20 - Ztor)/20) * (Ztor >= 0 && Ztor < 20);
 
 fhngdelta = (delta <= 70) + ((90 - delta)/20) * (delta > 70);
@@ -156,7 +158,7 @@ fhng = c9(ip) * fhngr * fhngm * fhngz * fhngdelta;
 % Site conditions
 
 if Vs30 < k1(ip);
-    A1100 = CB_2008_nga (M, 0, Rrup,  Rjb,Ztor, delta, lambda, 1100, Zvs, arb);
+    if A1100==0; A1100 = CB_2008_nga (M, 0, Rrup,  Rjb,Ztor, delta, lambda, 1100, Zvs, arb); end;
     fsite = c10(ip) * log(Vs30/k1(ip)) + k2(ip) * (log(A1100 + c * (Vs30/k1(ip))^n) - log(A1100 + c));
 elseif Vs30 < 1100;
     fsite = (c10(ip) + k2(ip) * n) * log(Vs30/k1(ip));
@@ -165,7 +167,6 @@ else
 end;
 
 % Sediment effects
-
 if Zvs < 1;
     fsed = c11(ip) * (Zvs - 1);
 elseif Zvs <= 3;
@@ -188,10 +189,16 @@ slnaf=0.3;
 slnpga=slny(length(slny)-2);
 slnab=sqrt(slnpga^2    -slnaf^2);
 slnyb=sqrt(slny(ip)^2  -slnaf^2);
+% from equation in the paper
 sigmat = sqrt(slny(ip)^2 + alpha^2*slnab^2 + 2*alpha*roh(ip)*slnyb*slnab);
+% from graph in the paper
+% sigmat = sqrt(slny(ip)^2 + alpha^2*slnab^2 + 2*alpha*roh(ip)*slny(ip)*slnab);
 tau = tlny(ip);
 
 sigma=sqrt(sigmat^2 + tau^2);
 if arb == 1;
     sigma = sqrt(sigma^2 + sigmac(ip)^2);
 end;
+
+
+
