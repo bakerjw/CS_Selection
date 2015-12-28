@@ -18,12 +18,12 @@
 %% OUTPUT VARIABLES
 %
 % finalRecords      : Record numbers of selected records
-% finalScaleFactors : Scale factors
+% finalScaleFactors : Corresponding scale factors
 %
 % (these variables are also output to a text file specified by the outputFile variable)
 %
 % The final cell in this m file shows how to plot the selected spectra
-% using this information.
+% using this information.  **********************************************************?
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -44,10 +44,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Certain variables are stored as parts of data structures which will later
 % be incorporated in the optimization portion of the code. Required user
-% input values are indicated for the user. Some of these are labeled as
-% advanced user inputs and are set to default values which the user may
-% choose to change. Other variables described below are calculated within
-% this script or other functions. The data structures are as follows:
+% input values are indicated for the user. Some variables described below
+% are calculated within this script or other functions. The data structures
+% are as follows:
 %
 % optInputs - input values needed to run the optimization function:
 %            optType    : For greedy optimization, the user will input a 0
@@ -61,7 +60,7 @@
 %                         computed (logarithmically spaced)
 %            T1         : Period at which spectra should be scaled and 
 %                         matched 
-%            nBig       : The number of allowed spectra
+%            nBig       : The number of spectra that will be searched
 %            recID      : This is a vector of index values for chosen
 %                         spectra
 %            rec        : This is the index of T1, the conditioning period
@@ -86,17 +85,17 @@
 % IMs       - The intensity measure values (from SaKnown) chosen and the 
 %             values available:
 %            sampleSmall : matrix of selected response spectra 
-%            sampleBig   : The matrix of allowed spectra 
+%            sampleBig   : The matrix of spectra that will be searched
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Variable definitions for more user inputs: 
 % SaKnown   : (N*P matrix)
 %             This is a matrix of Sa values at different periods (P) for
 %             available ground-motion time histories (N).
-%             Usually, the structure's fundamental period.
+%             *****************Usually, the structure's fundamental period.****************?
 % perKnown  : The set of P periods.
 %
-% If a database other than the NGA database is used, also define the
+% If a database other than the provided databases is used, also define the
 % following variables:
 % 
 % soil_Vs30        : Soil Vs30 values corresponding to all the records
@@ -114,7 +113,7 @@ RotD                 = 50;
 
 % Number of ground motions and spectral periods of interest
 optInputs.nGM        = 20;      % number of ground motions to be selected 
-optInputs.T1         = 0.5; 
+optInputs.T1         = 0.5;     
 optInputs.Tmin       = 0.1;     % smallest spectral period of interest
 optInputs.Tmax       = 10;      % largest spectral period of interest
 optInputs.PerTgt     = logspace(log10(optInputs.Tmin),log10(optInputs.Tmax),30);
@@ -177,6 +176,7 @@ else % two-component selection
         SaKnown     = Sa_RotD100;
     else
         fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
+        % assert(error) **************************************************?
     end
 end
 
@@ -184,7 +184,7 @@ end
 %% Arrange available spectra in usable format and check for invalid values
 
 % Create variable for known periods
-perKnown = Periods;
+% perKnown = Periods; *********************************************************?
 
 % Modify PerTgt to include T1 if running a conditional selection
 if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
@@ -237,10 +237,10 @@ perKnownCorr = perKnownCorr(perKnownCorr <=10);
 % compute the median and standard deviations of RotD50 response spectrum values 
 [sa, sigma] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
 % modify spectral targets if RotD100 values were specified
-if RotD == 100
+if RotD == 100 && arb == 1 % only adjust for two-comp and RotD100
    [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( perKnownCorr ); % median and sigma of RotD100/RotD50 ratio
-   sa = sa .*rotD100Ratio;
-   sigma = sqrt ( sigma.^2 + rotD100Sigma .^2);
+   sa = sa .*rotD100Ratio; % cite paper -- equation 3
+   sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
 % compute the target means, covariances, and correlations 
@@ -327,7 +327,7 @@ if meanErr > optInputs.tol || stdErr > optInputs.tol
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
     finalRecords = optInputs.recID;
-    finalScaleFactors = finalScaleFac;
+    finalScaleFactors = finalScaleFac; %-- change variable names/overwrite initial scale factors
 end
 
 
