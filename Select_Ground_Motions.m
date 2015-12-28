@@ -23,7 +23,7 @@
 % (these variables are also output to a text file specified by the outputFile variable)
 %
 % The final cell in this m file shows how to plot the selected spectra
-% using this information.  **********************************************************?
+% using this information. 
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -92,7 +92,6 @@
 % SaKnown   : (N*P matrix)
 %             This is a matrix of Sa values at different periods (P) for
 %             available ground-motion time histories (N).
-%             *****************Usually, the structure's fundamental period.****************?
 % perKnown  : The set of P periods.
 %
 % If a database other than the provided databases is used, also define the
@@ -176,15 +175,16 @@ else % two-component selection
         SaKnown     = Sa_RotD100;
     else
         fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
-        % assert(error) **************************************************?
+        % should geometric mean be used here?
+        SaKnown = sqrt(Sa_1.*Sa_2);
     end
 end
 
 
 %% Arrange available spectra in usable format and check for invalid values
 
-% Create variable for known periods
-% perKnown = Periods; *********************************************************?
+% Create variable for known periods******************************************?
+perKnown = Periods; 
 
 % Modify PerTgt to include T1 if running a conditional selection
 if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
