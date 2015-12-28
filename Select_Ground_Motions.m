@@ -128,7 +128,8 @@ optInputs.optType    = 0;
 
 % User inputs to specify the target earthquake scenario
 M_bar       = 7.5;      % earthquake magnitude
-Rrup        = 10;       % closest distance to fault rupture (km)
+R_bar       = 10;       % distance corresponding to the target scenario earthquake
+Rrup        = R_bar;    % closest distance to fault rupture (km)
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
 eps_bar     = 1.5;      % epsilon value (used only for conditional selection)
 Vs30        = 260;      % Average shear wave velocity in the top 30m of the soil (m/s)
@@ -180,10 +181,9 @@ else % two-component selection
     end
 end
 
-
 %% Arrange available spectra in usable format and check for invalid values
 
-% Create variable for known periods******************************************?
+% Create variable for known periods
 perKnown = Periods; 
 
 % Modify PerTgt to include T1 if running a conditional selection
