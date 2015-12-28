@@ -228,14 +228,14 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 %% Compute target means and covariances of spectral values 
 
 % arrange periods for which correlations will be calculated
-perKnownCorr = perKnown;
-if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
-    perKnownCorr = sort([perKnown optInputs.T1]);
-end
-perKnownCorr = perKnownCorr(perKnownCorr <=10);
+% perKnownCorr = perKnown;
+% if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
+%     perKnownCorr = sort([perKnown optInputs.T1]);
+% end
+% perKnownCorr = perKnownCorr(perKnownCorr <=10);
 
 % compute the median and standard deviations of RotD50 response spectrum values 
-[sa, sigma] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
+[sa, sigma] = CB_2008_nga (M_bar, perKnown(perKnown<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
 % modify spectral targets if RotD100 values were specified
 if RotD == 100 && arb == 1 % only adjust for two-comp and RotD100
    [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( perKnownCorr ); % median and sigma of RotD100/RotD50 ratio

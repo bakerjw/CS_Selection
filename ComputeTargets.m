@@ -1,4 +1,4 @@
-function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer, perKnown, perKnownCorr, sa, sigma, useVar, eps_bar, optInputs )
+function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer, perKnown, sa, sigma, useVar, eps_bar, optInputs )
 % ComputeTargets will calculate and return the target mean spectrum, target
 % covariance matrix, and target correlation matrix for ground motion
 % selection. The index/indicies of PerTgt that will need to be scaled is
@@ -8,8 +8,6 @@ function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer
 %           recPer          : periods at which target means will be
 %                             calculated
 %           perKnown        : available periods from the database
-%           perKnownCorr    : periods at which correlations will be
-%                             calculated
 %           sa              : spectral accelerations from the GMPE
 %           sigma           : standard deviations from the GMPE
 %           useVar          : user input for calculating variance
@@ -18,7 +16,7 @@ function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( recPer
 %           optInputs       : optimization user inputs 
 %% Compute target mean spectrum from results of Campbell and Bozorgnia GMPE
 % Initialize variables for computing targets 
-perKnownRec = find(perKnownCorr == optInputs.T1);
+% perKnownRec = find(perKnownCorr == optInputs.T1);
 
 % (Log) Response Spectrum Mean: meanReq
 % Define indicies at which spectra will be scaled
@@ -50,13 +48,13 @@ end
 
 
 %% Compute covariances at all periods 
-covReqPart = zeros(length(perKnownCorr));
-corrMatrix = zeros(length(perKnownCorr));
-for i=1:length(perKnownCorr)
-    for j=1:length(perKnownCorr)
+covReqPart = zeros(length(perKnown));
+corrMatrix = zeros(length(perKnown));
+for i=1:length(perKnown)
+    for j=1:length(perKnown)
         % Periods
-        Ti = perKnownCorr(i);
-        Tj = perKnownCorr(j);
+        Ti = perKnown(i);
+        Tj = perKnown(j);
 
         % Means and variances
         varT = sigma(optInputs.rec)^2;
