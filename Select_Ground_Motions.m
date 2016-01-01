@@ -115,7 +115,7 @@ optInputs.nGM        = 20;      % number of ground motions to be selected
 optInputs.T1         = 0.5;     
 optInputs.Tmin       = 0.1;     % smallest spectral period of interest
 optInputs.Tmax       = 10;      % largest spectral period of interest
-optInputs.PerTgt     = logspace(log10(optInputs.Tmin),log10(optInputs.Tmax),30);
+optInputs.TgtPer     = logspace(log10(optInputs.Tmin),log10(optInputs.Tmax),30);
 
 % other parameters to scale motions and evaluate selections 
 optInputs.isScaled   = 1;       % =1 to allow scaling, =0 otherwise
@@ -184,28 +184,28 @@ end
 %% Arrange available spectra in usable format and check for invalid values
 
 % Create variable for known periods
-perKnown = Periods; 
+knownPer = Periods; 
 
 % Modify PerTgt to include T1 if running a conditional selection
-if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
-    optInputs.PerTgt = sort([optInputs.PerTgt optInputs.T1]);
+if optInputs.cond == 1 && ~any(optInputs.TgtPer == optInputs.T1)
+    optInputs.TgtPer = sort([optInputs.TgtPer optInputs.T1]);
 end
 
 % Match periods (known periods and periods for error computations) save the
 % indicies of the matched periods in perKnown
-recPer = zeros(length(optInputs.PerTgt),1);
-for i=1:length(optInputs.PerTgt)
-    [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
+indPer = zeros(length(optInputs.TgtPer),1);
+for i=1:length(optInputs.TgtPer)
+    [~ , indPer(i)] = min(abs(knownPer - optInputs.TgtPer(i)));
 end
 
 % Remove any repeated values from PerTgt and redefine PerTgt as periods 
 % provided in databases
-recPer = unique(recPer);
-optInputs.PerTgt = perKnown(recPer);
+indPer = unique(indPer);
+optInputs.TgtPer = knownPer(indPer);
 
 % Identify the index of T1 within PerTgt and the final number of periods in
 % PerTgt
-[~, optInputs.rec] = min(abs(optInputs.PerTgt - optInputs.T1));
+[~, optInputs.indT1] = min(abs(optInputs.TgtPer - optInputs.T1));
 % numPer = length(optInputs.PerTgt); % NOTE - Jack commented this out on 12/15/2015, as it doesn't seem to be used anywhere
 
 %% Screen the records to be considered
@@ -219,7 +219,7 @@ allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa);
 
 % Process available spectra
 SaKnown = SaKnown(allowedIndex,:);
-IMs.sampleBig = log(SaKnown(:,recPer));
+IMs.sampleBig = log(SaKnown(:,indPer));
 optInputs.nBig = size(IMs.sampleBig,1);
 
 fprintf('Number of allowed ground motions = %i \n \n', length(allowedIndex))
@@ -235,7 +235,7 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 % perKnownCorr = perKnownCorr(perKnownCorr <=10);
 
 % compute the median and standard deviations of RotD50 response spectrum values 
-[sa, sigma] = CB_2008_nga (M_bar, perKnown(perKnown<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
+[sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
 % modify spectral targets if RotD100 values were specified
 if RotD == 100 && arb == 1 % only adjust for two-comp and RotD100
    [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( perKnownCorr ); % median and sigma of RotD100/RotD50 ratio
@@ -244,7 +244,7 @@ if RotD == 100 && arb == 1 % only adjust for two-comp and RotD100
 end
 
 % compute the target means, covariances, and correlations 
-[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(recPer, perKnown, perKnownCorr, sa,...
+[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(indPer, knownPer, perKnownCorr, sa,...
                                                 sigma, useVar, eps_bar, optInputs);
                                             
 %% Simulate response spectra matching the above targets, for use in record selection
