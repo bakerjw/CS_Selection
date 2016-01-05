@@ -56,14 +56,14 @@
 %            tol        : User input percent error tolerance to determine
 %                         whether or not optimization can be skipped (this
 %                         will only be used for SSE optimization)
-%            PerTgt     : Periods at which the target spectrum needs to be
+%            TgtPer     : Periods at which the target spectrum needs to be
 %                         computed (logarithmically spaced)
 %            T1         : Period at which spectra should be scaled and 
 %                         matched 
 %            nBig       : The number of spectra that will be searched
 %            recID      : This is a vector of index values for chosen
 %                         spectra
-%            rec        : This is the index of T1, the conditioning period
+%            indT1      : This is the index of T1, the conditioning period
 %            penalty    : If a penalty needs to be applied to avoid selecting
 %                         spectra that have spectral acceleration values 
 %                         beyond 3 sigma at any of the periods, set a value
@@ -92,7 +92,7 @@
 % SaKnown   : (N*P matrix)
 %             This is a matrix of Sa values at different periods (P) for
 %             available ground-motion time histories (N).
-% perKnown  : The set of P periods.
+% knownPer  : The set of P periods.
 %
 % If a database other than the provided databases is used, also define the
 % following variables:
@@ -106,7 +106,7 @@
 
 % Ground motion database and type of selection 
 databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
-optInputs.cond       = 0;
+optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
 
@@ -192,7 +192,7 @@ if optInputs.cond == 1 && ~any(optInputs.TgtPer == optInputs.T1)
 end
 
 % Match periods (known periods and periods for error computations) save the
-% indicies of the matched periods in perKnown
+% indicies of the matched periods in knownPer
 indPer = zeros(length(optInputs.TgtPer),1);
 for i=1:length(optInputs.TgtPer)
     [~ , indPer(i)] = min(abs(knownPer - optInputs.TgtPer(i)));
@@ -206,8 +206,6 @@ optInputs.TgtPer = knownPer(indPer);
 % Identify the index of T1 within PerTgt and the final number of periods in
 % PerTgt
 [~, optInputs.indT1] = min(abs(optInputs.TgtPer - optInputs.T1));
-% numPer = length(optInputs.PerTgt); % NOTE - Jack commented this out on 12/15/2015, as it doesn't seem to be used anywhere
-
 %% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
 recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
@@ -238,13 +236,13 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 [sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
 % modify spectral targets if RotD100 values were specified
 if RotD == 100 && arb == 1 % only adjust for two-comp and RotD100
-   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( perKnownCorr ); % median and sigma of RotD100/RotD50 ratio
+   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); % median and sigma of RotD100/RotD50 ratio
    sa = sa .*rotD100Ratio; % cite paper -- equation 3
    sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
 % compute the target means, covariances, and correlations 
-[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(indPer, knownPer, perKnownCorr, sa,...
+[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(indPer, knownPer, sa,...
                                                 sigma, useVar, eps_bar, optInputs);
                                             
 %% Simulate response spectra matching the above targets, for use in record selection
@@ -306,12 +304,12 @@ Tgts.stdevs = sqrt(diag(Tgts.covReq))';
 origMeans = exp(mean(IMs.sampleSmall));
 origStdevs = std(IMs.sampleSmall);
 
-% Define all other periods besides T1
-notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec)); 
+% % Define all other periods besides T1
+% notT1 = find(optInputs.TgtPer ~= optInputs.TgtPer(optInputs.indT1)); 
 
 % Compute maximum percent error of selection relative to target
 meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
-stdErr = max(abs(origStdevs(notT1)-Tgts.stdevs(notT1))./Tgts.stdevs(notT1))*100;
+stdErr = max(abs(origStdevs(1:end ~= optInputs.indT1)-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
 
 % Display the original maximum error between the selected gm and the target
 fprintf('End of simulation stage \n')
@@ -326,7 +324,7 @@ if meanErr > optInputs.tol || stdErr > optInputs.tol
     % [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOptPar(optInputs, Tgts, IMs); % a version of the optimization function that uses parallel processing
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
-    finalRecords = optInputs.recID;
+    finalRecords = optInputs.indPer;
     finalScaleFactors = finalScaleFac; %-- change variable names/overwrite initial scale factors
 end
 

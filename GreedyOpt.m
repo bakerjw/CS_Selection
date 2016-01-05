@@ -74,7 +74,7 @@ for k=1:optInputs.nLoop % Number of passes
         
         if optInputs.isScaled == 1
             if optInputs.cond == 1
-                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.rec));
+                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.indT1));
             elseif optInputs.cond == 0
                 [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.stdevs, optInputs.weights, optInputs.maxScale);
             end
@@ -138,10 +138,9 @@ for k=1:optInputs.nLoop % Number of passes
     % sampleSmall and then recalculate new maximum percent errors of means
     % and standard deviations 
     if optInputs.optType == 0
-        notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec));
         stdevs = std(sampleSmall);
         meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
-        stdErr = max(abs(stdevs(notT1) - Tgts.stdevs(notT1))./Tgts.stdevs(notT1))*100;
+        stdErr = max(abs(stdevs(1:end ~= optInputs.indT1) - Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
         fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
         
