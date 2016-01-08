@@ -138,6 +138,7 @@ delta       = 90;       % Average dip of the rupture (degrees)
 lambda      = 180;      % Rake angle (degrees)
 Zvs         = 2;        % Depth to the 2.5 km/s shear-wave velocity horizon (km)
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
+region      = 0;        % default, global 
 
 % Ground motion properties to require when selecting from the database. 
 allowedVs30          = [0 500];     % Upper and lower bound of allowable Vs30 values 
@@ -176,7 +177,8 @@ else % two-component selection
         SaKnown     = Sa_RotD100;
     else
         fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
-        % should geometric mean be used here?
+        % if data corresponding to user input RotD value does not exist,
+        % use the geometric mean of two single-component directions
         SaKnown = sqrt(Sa_1.*Sa_2);
     end
 end
@@ -186,13 +188,13 @@ end
 % Create variable for known periods
 knownPer = Periods; 
 
-% Modify PerTgt to include T1 if running a conditional selection
+% Modify TgtPer to include T1 if running a conditional selection
 if optInputs.cond == 1 && ~any(optInputs.TgtPer == optInputs.T1)
     optInputs.TgtPer = sort([optInputs.TgtPer optInputs.T1]);
 end
 
-% Match periods (known periods and periods for error computations) save the
-% indicies of the matched periods in knownPer
+% Match periods (known periods and target periods for error computations) 
+% save the indicies of the matched periods in knownPer
 indPer = zeros(length(optInputs.TgtPer),1);
 for i=1:length(optInputs.TgtPer)
     [~ , indPer(i)] = min(abs(knownPer - optInputs.TgtPer(i)));
@@ -206,13 +208,14 @@ optInputs.TgtPer = knownPer(indPer);
 % Identify the index of T1 within PerTgt and the final number of periods in
 % PerTgt
 [~, optInputs.indT1] = min(abs(optInputs.TgtPer - optInputs.T1));
+
 %% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
 recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
 recValidMag = magnitude > allowedMag(1) & magnitude < allowedMag(2);
 recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
 
-% only the allowable records will be searched
+% find indicies of allowable records that will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 
 % Process available spectra
@@ -226,12 +229,18 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 %% Compute target means and covariances of spectral values 
 
 % compute the median and standard deviations of RotD50 response spectrum values 
-[sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
+% [sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
 
-% modify spectral targets if RotD100 values were specified
-if RotD == 100 && arb == 1 % only adjust for two-comp and RotD100
-   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); % median and sigma of RotD100/RotD50 ratio
-   sa = sa .*rotD100Ratio; % cite paper -- equation 3
+% need: Rx, W, Zbot, Fhw, Z25 (Zvs??), Zhyp (Zvs??), region
+[sa, sigma] = CB_2014_nga(M_bar, knownPer(knownPer<=10), Rrup, Rjb, Rx, W, Ztor, Zbot, delta, lambda, Fhw, Vs30, Z25, Zhyp, region);
+
+% modify spectral targets if RotD100 values were specified for
+% two-component selection, see the following document for more details:
+%  Shahi, S. K., and Baker, J. W. (2014). "NGA-West2 models for ground-
+%  motion directionality." Earthquake Spectra, 30(3), 1285-1300.
+if RotD == 100 && arb == 2 
+   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); 
+   sa = sa .*rotD100Ratio; % from equation (1) of the above paper
    sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
