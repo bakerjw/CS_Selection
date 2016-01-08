@@ -1,4 +1,4 @@
-function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOpt( optInputs, Tgts, IMs )
+function [ sampleSmall, finalRecords, finalScaleFac ] = GreedyOpt( optInputs, Tgts, IMs )
 % This function will perform a greedy optimization on a set of ground
 % motions using the sum of squared errors approach to check the set of
 % selected ground motions against target means and variances
@@ -68,13 +68,16 @@ end
 
 % if optimizing the ground motions by calculating the Dn value, first
 % calculate the emperical CDF values (which will be the same at each
-% period) and initialize a vector of Dn values
+% period) 
 if optInputs.optType == 1
     emp_cdf = linspace(0,1,optInputs.nGM+1);
 end
 
-% Initialize scale factor vector
+% Initialize scale factor vector for each iteration and a scale factor
+% vector for the final selected records 
 scaleFac = ones(optInputs.nBig,1);
+finalScaleFac = ones(optInputs.nGM,1);
+
 for k=1:optInputs.nLoop % Number of passes
     
     for i=1:optInputs.nGM % Selects nGM ground motions
@@ -133,7 +136,7 @@ for k=1:optInputs.nLoop % Number of passes
             sampleSmall = sampleSmall(1:end-1,:);
         end
         
-        [minDevFinal, minID] = min(devTotal);
+        [~ , minID] = min(devTotal);
         % Add new element in the right slot
         if optInputs.isScaled == 1
             finalScaleFac(i) = scaleFac(minID);
@@ -171,7 +174,7 @@ display('100% done');
 
 % Output information
 finalRecords = optInputs.recID;
-finalScaleFactors = finalScaleFac';
+finalScaleFac = finalScaleFac';
 
 
 

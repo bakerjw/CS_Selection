@@ -126,7 +126,8 @@ optInputs.penalty    = 0;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
 
-% User inputs to specify the target earthquake scenario
+% User inputs to specify the target earthquake scenario (remove unused once
+% CB_2014_nga is added correctly)
 M_bar       = 7.5;      % earthquake magnitude
 R_bar       = 10;       % distance corresponding to the target scenario earthquake
 Rrup        = R_bar;    % closest distance to fault rupture (km)
@@ -315,10 +316,9 @@ Tgts.stdevs = sqrt(diag(Tgts.covReq))';
 origMeans = exp(mean(IMs.sampleSmall));
 origStdevs = std(IMs.sampleSmall);
 
-% % Define all other periods besides T1
-% notT1 = find(optInputs.TgtPer ~= optInputs.TgtPer(optInputs.indT1)); 
-
-% Compute maximum percent error of selection relative to target
+% Compute maximum percent error of selection relative to target means and
+% standard deviations (do not compute standard deviation error at T1 for
+% conditional selection)
 meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
 stdErr = max(abs(origStdevs(1:end ~= optInputs.indT1)-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
 
@@ -331,12 +331,12 @@ fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n'
 
 % if selected motions do not yet meet tolerances, further optimize
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);  
+    [IMs.sampleSmall, finalRecords, finalScaleFac] = GreedyOpt(optInputs, Tgts, IMs);  
     % [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOptPar(optInputs, Tgts, IMs); % a version of the optimization function that uses parallel processing
+
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
-    finalRecords = optInputs.indPer;
-    finalScaleFactors = finalScaleFac; %-- change variable names/overwrite initial scale factors
+    finalRecords = optInputs.recID;
 end
 
 
@@ -364,9 +364,9 @@ end
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1 
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
+        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
     else 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
     end
 end
 

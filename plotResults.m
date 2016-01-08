@@ -35,7 +35,7 @@
     loglog(optInputs.TgtPer, exp(Tgts.meanReq), 'b', 'linewidth', 3)
     hold on
     loglog(optInputs.TgtPer, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    loglog(knownPer,SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)),'k');
+    loglog(knownPer,SaKnown(finalRecords,:).*repmat(finalScaleFac,1,size(SaKnown,2)),'k');
     loglog(optInputs.TgtPer, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
     axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
     xlabel('T (s)');
@@ -72,7 +72,7 @@
 
 
     % Compute sample correlations from selected spectra
-    sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)));
+    sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFac,1,size(SaKnown,2)));
     sampleUse = [sampleUse(:,knownPer<optInputs.T1) interp1(knownPer,sampleUse',optInputs.T1)' sampleUse(:,knownPer>optInputs.T1)];
     corrReqSamp = zeros(length(knownPer(knownPer<=10)));
     for i=1:length(knownPer(knownPer<=10))
