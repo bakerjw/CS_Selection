@@ -49,28 +49,28 @@
 % are as follows:
 %
 % optInputs - input values needed to run the optimization function:
+%            nBig       : The number of spectra that will be searched
+%            isScaled   : The user will input 1 to allow records to be 
+%                         scaled, and input 0 otherwise 
+%            maxScale   : The maximum allowable scale factor
+%            indT1      : This is the index of T1, the conditioning period
+%            recID      : This is a vector of index values for chosen
+%                         spectra
+%            tol        : User input percent error tolerance to determine
+%                         whether or not optimization can be skipped (this
+%                         will only be used for SSE optimization)
 %            optType    : For greedy optimization, the user will input a 0
 %                         to use the sum of squared errors approach to 
 %                         optimize the selected spectra, or a 1 to use 
 %                         D-statistic calculations from the KS-test
-%            tol        : User input percent error tolerance to determine
-%                         whether or not optimization can be skipped (this
-%                         will only be used for SSE optimization)
-%            TgtPer     : Periods at which the target spectrum needs to be
-%                         computed (logarithmically spaced)
-%            T1         : Period at which spectra should be scaled and 
-%                         matched 
-%            nBig       : The number of spectra that will be searched
-%            recID      : This is a vector of index values for chosen
-%                         spectra
-%            indT1      : This is the index of T1, the conditioning period
 %            penalty    : If a penalty needs to be applied to avoid selecting
 %                         spectra that have spectral acceleration values 
 %                         beyond 3 sigma at any of the periods, set a value
 %                         here. Use 0 otherwise.
 %            weights    : [Weight for error in mean, Weight for error 
-%                         in standard deviation] e.g., [1.0,1.0] 
-%            nLoop      : Number of loops of optimations to perform.
+%                         in standard deviation] e.g., [1.0,1.0] (used only
+%                         in SSE optimization)
+%            nLoop      : Number of loops of optimizations to perform.
 %                         Default value = 2
 % 
 % Tgts      - The target values (means and covariances) being matched
@@ -92,7 +92,7 @@
 % SaKnown   : (N*P matrix)
 %             This is a matrix of Sa values at different periods (P) for
 %             available ground-motion time histories (N).
-% knownPer  : The set of P periods.
+% knownPer  : The set of P known periods.
 %
 % If a database other than the provided databases is used, also define the
 % following variables:
@@ -112,19 +112,19 @@ RotD                 = 50;
 
 % Number of ground motions and spectral periods of interest
 optInputs.nGM        = 20;      % number of ground motions to be selected 
-optInputs.T1         = 0.5;     
-optInputs.Tmin       = 0.1;     % smallest spectral period of interest
-optInputs.Tmax       = 10;      % largest spectral period of interest
-optInputs.TgtPer     = logspace(log10(optInputs.Tmin),log10(optInputs.Tmax),30);
+optInputs.T1         = 0.5;     % Period at which spectra should be scaled and matched 
+Tmin                 = 0.1;     % smallest spectral period of interest
+Tmax                 = 10;      % largest spectral period of interest
+optInputs.TgtPer     = logspace(log10(Tmin),log10(Tmax),30); % Periods at which the target spectrum needs to be computed (logarithmically spaced)
 
 % other parameters to scale motions and evaluate selections 
-optInputs.isScaled   = 1;       % =1 to allow scaling, =0 otherwise
-optInputs.maxScale   = 4;       % maximum allowable scale factor
+optInputs.isScaled   = 1;       
+optInputs.maxScale   = 4;       
 optInputs.tol        = 15; 
+optInputs.optType    = 0; 
+optInputs.penalty    = 0;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
-optInputs.penalty    = 0;
-optInputs.optType    = 0; 
 
 % User inputs to specify the target earthquake scenario
 M_bar       = 7.5;      % earthquake magnitude
@@ -225,15 +225,9 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 %% Compute target means and covariances of spectral values 
 
-% arrange periods for which correlations will be calculated
-% perKnownCorr = perKnown;
-% if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
-%     perKnownCorr = sort([perKnown optInputs.T1]);
-% end
-% perKnownCorr = perKnownCorr(perKnownCorr <=10);
-
 % compute the median and standard deviations of RotD50 response spectrum values 
 [sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
+
 % modify spectral targets if RotD100 values were specified
 if RotD == 100 && arb == 1 % only adjust for two-comp and RotD100
    [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); % median and sigma of RotD100/RotD50 ratio
