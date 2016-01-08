@@ -9,7 +9,7 @@
 %       Stanford University, yuehua@stanford.edu
 % Modified 4/5/2015 by Jack Baker to fix a few small bugs
 %
-% Provides ground-mtion prediction equations for computing medians and
+% Provides ground-motion prediction equations for computing medians and
 % standard deviations of average horizontal components of PGA, PGV and 5%
 % damped linear pseudo-absolute aceeleration response spectra
 %
@@ -30,13 +30,13 @@
 %               needed only when W is unknow;
 % delta         = average dip of the rupture place (degree)
 % lambda        = rake angle (degree) - average angle of slip measured in
-%                   the plance of rupture
+%                   the plane of rupture
 % Fhw           = hanging wall effect
 %               = 1 for including
 %               = 0 for excluding
 % Vs30          = shear wave velocity averaged over top 30 m (m/s)
 % Z25           = Depth to the 2.5 km/s shear-wave velocity horizon (km)
-%                   if in California or Japan and Z2.5 is unknow, then
+%                   if in California or Japan and Z2.5 is unknown, then
 %                   input: 999
 % Zhyp          = Hypocentral depth of the earthquake measured from sea level
 %                   if unknown, input: 999
