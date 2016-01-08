@@ -132,18 +132,26 @@ R_bar       = 10;       % distance corresponding to the target scenario earthqua
 Rrup        = R_bar;    % closest distance to fault rupture (km)
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
 eps_bar     = 1.5;      % epsilon value (used only for conditional selection)
-Vs30        = 260;      % Average shear wave velocity in the top 30m of the soil (m/s)
-Ztor        = 0;        % Depth to the top of coseismic rupture (km)
-delta       = 90;       % Average dip of the rupture (degrees)
-lambda      = 180;      % Rake angle (degrees)
-Zvs         = 2;        % Depth to the 2.5 km/s shear-wave velocity horizon (km)
+Vs30        = 260;      % average shear wave velocity in the top 30m of the soil (m/s)
+Ztor        = 0;        % depth to the top of coseismic rupture (km)
+delta       = 90;       % average dip of the rupture (degrees)
+lambda      = 180;      % rake angle (degrees)
+Zvs         = 2;        % depth to the 2.5 km/s shear-wave velocity horizon (km)
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
+
+% Additional user inputs for CB_2014_nga (updated prediction equation)
+Rx          = R_bar;    % closest distance to the surface projection of the coseismic fault rupture plane (km)
+W           = 16;       % down-dipth width of the rupture plain (km) (San Andreas entire width/depth (estmiate))
+Zbot        = Ztor + W; % depth to bottom of seismogenic crust (km)
+Fhw         = 1;        % hanging wall effect, = 1 for including, = 0 for excluding
+Z25         = Zvs;      % depth to the 2.5 km/s shear-wave velocity horizon (km), if in California or Japan and Z2.5 is unknown, input 999
+Zhyp        = 999;      % hypocentral depth of earthquake measured from sea level (km), =999 if unknown
 region      = 0;        % default, global 
 
 % Ground motion properties to require when selecting from the database. 
-allowedVs30          = [0 500];     % Upper and lower bound of allowable Vs30 values 
-allowedMag           = [4 9];       % Upper and lower bound of allowable magnitude values
-allowedD             = [0 100];     % Upper and lower bound of allowable distance values
+allowedVs30          = [0 500];     % upper and lower bound of allowable Vs30 values 
+allowedMag           = [4 9];       % upper and lower bound of allowable magnitude values
+allowedD             = [0 100];     % upper and lower bound of allowable distance values
 
 % Miscellaneous other inputs
 showPlots            = 1;   % =1 to plot results, =0 to suppress plots
