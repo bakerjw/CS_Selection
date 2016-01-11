@@ -79,13 +79,11 @@ scaleFac = ones(optInputs.nBig,1);
 finalScaleFac = ones(optInputs.nGM,1);
 
 for k=1:optInputs.nLoop % Number of passes
-    
     for i=1:optInputs.nGM % Selects nGM ground motions
         display([num2str(round(((k-1)*optInputs.nGM + i-1)/(optInputs.nLoop*optInputs.nGM)*100)) '% done']);
-        
-        devTotal = zeros(optInputs.nBig,1);
-        sampleSmall(i,:) = [];
-        optInputs.recID(i,:) = [];
+        devTotal = zeros(optInputs.nBig,1); % initialize measure of deviation for each selected ground motion
+        sampleSmall(i,:) = []; % remove initially selected record to be replaced
+        optInputs.recID(i,:) = []; 
         
         if optInputs.isScaled == 1
             if optInputs.cond == 1
@@ -94,7 +92,6 @@ for k=1:optInputs.nLoop % Number of passes
                 [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.stdevs, optInputs.weights, optInputs.maxScale);
             end
         end
-        
         % Try to add a new spectra to the subset list
         for j = 1:optInputs.nBig
             sampleSmall = [sampleSmall;IMs.sampleBig(j,:)+log(scaleFac(j))];
@@ -126,12 +123,12 @@ for k=1:optInputs.nLoop % Number of passes
             % Scale factors for either type of optimization should not
             % exceed the maximum
             if (scaleFac(j) > optInputs.maxScale)
-                devTotal(j) = devTotal(j) + 1000000;
+                devTotal(j) = 1000000;
             end
             
             % Should cause improvement and record should not be repeated
             if (any(optInputs.recID == j))
-                devTotal(j) = 100000;
+                devTotal(j) = 1000000;
             end
             sampleSmall = sampleSmall(1:end-1,:);
         end
