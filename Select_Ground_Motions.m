@@ -105,7 +105,7 @@
 %% User inputs begin here
 
 % Ground motion database and type of selection 
-databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
+databaseFile         = 'NGA_W1_meta_data'; % filename of the target database
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
@@ -150,7 +150,7 @@ Zhyp        = 999;      % hypocentral depth of earthquake measured from sea leve
 region      = 0;        % default, global 
 
 % Ground motion properties to require when selecting from the database. 
-allowedVs30          = [0 500];     % upper and lower bound of allowable Vs30 values 
+allowedVs30          = [0 Inf];     % upper and lower bound of allowable Vs30 values 
 allowedMag           = [4 9];       % upper and lower bound of allowable magnitude values
 allowedD             = [0 100];     % upper and lower bound of allowable distance values
 
@@ -249,7 +249,7 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 %  motion directionality." Earthquake Spectra, 30(3), 1285-1300.
 if RotD == 100 && arb == 2 
    [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); 
-   sa = sa .*rotD100Ratio; % from equation (1) of the above paper
+   sa = sa.*rotD100Ratio; % from equation (1) of the above paper
    sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
@@ -364,9 +364,11 @@ end
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1 
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
+%         fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
+        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
     else 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
+%         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename_1{rec}),char(Filename_2{rec}),[char(dirLocation{rec}) char(Filename_1{rec})],[char(dirLocation{rec}) char(Filename_2{rec})]);
     end
 end
 
