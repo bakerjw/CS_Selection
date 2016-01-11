@@ -18,12 +18,12 @@
     
     % Plot simulated response spectra  
     figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), '-r', 'linewidth', 3)
+    loglog(optInputs.TgtPer, exp(Tgts.meanReq), '-r', 'linewidth', 3)
     hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    loglog(optInputs.PerTgt, simulatedSpectra','k');
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
+    loglog(optInputs.TgtPer, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
+    loglog(optInputs.TgtPer, simulatedSpectra','k');
+    loglog(optInputs.TgtPer, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
+    axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
     xlabel('T (s)')
     ylabel('S_a (g)')
     legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of simulated ground motions')
@@ -32,12 +32,12 @@
     
     % Plot selected response spectra
     figure
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq), 'b', 'linewidth', 3)
+    loglog(optInputs.TgtPer, exp(Tgts.meanReq), 'b', 'linewidth', 3)
     hold on
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    loglog(perKnown,SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)),'k');
-    loglog(optInputs.PerTgt, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
+    loglog(optInputs.TgtPer, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
+    loglog(knownPer,SaKnown(finalRecords,:).*repmat(finalScaleFac,1,size(SaKnown,2)),'k');
+    loglog(optInputs.TgtPer, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
+    axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
     xlabel('T (s)');
     ylabel('S_a (g)');
     legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of selected ground motions');
@@ -46,11 +46,11 @@
 
     % Target, initial, and finally selected medians
     figure
-    loglog(optInputs.PerTgt,Tgts.means,'k','linewidth',1)
+    loglog(optInputs.TgtPer,Tgts.means,'k','linewidth',1)
     hold on
-    loglog(optInputs.PerTgt, origMeans,'r*', 'linewidth',2)
-    loglog(optInputs.PerTgt,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 1e-2 5])
+    loglog(optInputs.TgtPer, origMeans,'r*--', 'linewidth',1)
+    loglog(optInputs.TgtPer,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
+    axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
     xlabel('T (s)');
     ylabel('Median S_a (g)');
     legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
@@ -59,11 +59,11 @@
     
     % Target, initial, and finally selected standard deviations
     figure
-    semilogx(optInputs.PerTgt,Tgts.stdevs,'k','linewidth',1)
+    semilogx(optInputs.TgtPer,Tgts.stdevs,'k','linewidth',1)
     hold on
-    semilogx(optInputs.PerTgt, origStdevs,'r*','linewidth',2)
-    semilogx(optInputs.PerTgt,std(IMs.sampleSmall),'b--','linewidth',1)
-    axis([min(optInputs.PerTgt) max(optInputs.PerTgt) 0 1])
+    semilogx(optInputs.TgtPer, origStdevs,'r*--','linewidth',1)
+    semilogx(optInputs.TgtPer,std(IMs.sampleSmall),'b--','linewidth',1)
+    axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 0 1])
     xlabel('T (s)');
     ylabel('Standard deviation of lnS_a');
     legend('Target standard deviation of lnS_a','Standard deviation of originally selected lnS_a','Standard deviation of selected lnS_a');
@@ -72,11 +72,11 @@
 
 
     % Compute sample correlations from selected spectra
-    sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFactors,1,size(SaKnown,2)));
-    sampleUse = [sampleUse(:,perKnown<optInputs.T1) interp1(perKnown,sampleUse',optInputs.T1)' sampleUse(:,perKnown>optInputs.T1)];
-    corrReqSamp = zeros(length(perKnownCorr));
-    for i=1:length(perKnownCorr)
-        for j=1:length(perKnownCorr)
+    sampleUse = log(SaKnown(finalRecords,:).*repmat(finalScaleFac,1,size(SaKnown,2)));
+    sampleUse = [sampleUse(:,knownPer<optInputs.T1) interp1(knownPer,sampleUse',optInputs.T1)' sampleUse(:,knownPer>optInputs.T1)];
+    corrReqSamp = zeros(length(knownPer(knownPer<=10)));
+    for i=1:length(knownPer(knownPer<=10))
+        for j=1:length(knownPer(knownPer<=10))
             corrMatrix = corrcoef((sampleUse(:,i)),(sampleUse(:,j)));
             corrReqSamp(i,j) = corrMatrix(1,2);
         end
@@ -84,7 +84,7 @@
     
     % Contours of correlations from selected spectra
     figure
-    contour(perKnownCorr, perKnownCorr, corrReqSamp);
+    contour(knownPer(knownPer<=10), knownPer(knownPer<=10), corrReqSamp);
     set(gca,'yscale','log','xscale','log');
     axis square;
     xlabel('T_1');
@@ -97,7 +97,7 @@
     
     % Contours of target correlations
     figure
-    contour(perKnownCorr, perKnownCorr, corrReq);
+    contour(knownPer(knownPer<=10), knownPer(knownPer<=10), corrReq);
     set(gca,'yscale','log','xscale','log');
     axis square;
     xlabel('T_1 (s)');
@@ -107,15 +107,16 @@
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
     % Difference between target and sample correlations
-    diffCorr = corrReqSamp-corrReq;
+    diffCorr = abs(corrReqSamp-corrReq);
     figure
-    contour(perKnownCorr,perKnownCorr,diffCorr);
+    contour(knownPer(knownPer<=10),knownPer(knownPer<=10),diffCorr);
     set(gca, 'yscale', 'log','xscale','log');
     axis square;
     title('Difference in the correlation (sample-target)');
     xlabel('T_1 (s)');
     ylabel('T_2 (s)');
     colorbar('YLim',[-1 1]);
+    caxis([0 0.5]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
 

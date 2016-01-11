@@ -90,3 +90,110 @@ finalScaleFactors = finalScaleFac';
 delete(parobj);
 end
 
+function [scaleFac, minDev] = bestScaleFactorPar(sampleBig,sampleSmall,meanReq,sigma,weights,maxScale)
+% Identifies the best scaled ground motions to be used with the greedy
+% algortihm
+
+% Determine size of sampleSmall for standard deviation calculations
+scales = 0.1:0.1:maxScale;
+scaleFac = zeros(size(sampleBig,1),1);
+[nGM,~] = size(sampleSmall);
+newGM = nGM+1;
+minDev = zeros(length(scales),1);
+
+parfor i = 1:size(sampleBig,1)
+    devTotal = zeros(length(scales),1);
+    
+    for j=1:length(scales)
+        
+        sampleSmallNew = [sampleSmall;sampleBig(i,:)+log(scales(j))];
+        
+        % Compute deviations from target
+        avg = sum(sampleSmallNew)./newGM;
+        devMean = avg - meanReq;
+        devSig = sqrt((1/(nGM))*sum((sampleSmallNew-repmat(avg,newGM,1)).^2))-sigma;
+        devTotal(j) = weights(1) * sum(devMean.^2) + weights(2) * sum(devSig.^2);
+        
+    end
+    
+    [minDev(i), minID] = min(devTotal);
+    
+    if minDev(i) == 100000;
+        scaleFac(i) = -99;
+    else
+        scaleFac(i) = scales(minID);
+    end
+    
+    
+end
+end
+
+
+
+function [ devTotal ] = ParLoop( devTotal, scaleFac, optInputs, sampleSmall, sampleBig, meanReq, stdevs, emp_cdf )
+% Parallel loop to use within greedy optimization
+optType = optInputs.optType;
+if all(devTotal) && optType == 0 
+    return;
+end
+
+PerTgt = optInputs.PerTgt;
+cond = optInputs.cond;
+isScaled = optInputs.isScaled;
+weights = optInputs.weights;
+penalty = optInputs.penalty;
+maxScale = optInputs.maxScale;
+recID = optInputs.recID;
+
+
+
+parfor j = 1:optInputs.nBig
+    sampleSmallTemp = [sampleSmall;sampleBig(j,:)+log(scaleFac(j))];
+    
+    % Calculate the appropriate measure of deviation and store in
+    % devTotal (the D-statistic or the combination of mean and
+    % sigma deviations)
+    if optType == 0
+        if cond == 1 || (cond == 0 && isScaled == 0)
+            % Compute deviations from target
+            devMean = mean(sampleSmallTemp) - meanReq;
+            devSig = std(sampleSmallTemp) - stdevs;
+            devTotal(j) = weights(1) * sum(devMean.^2) + weights(2) * sum(devSig.^2);
+        end
+        % Penalize bad spectra (set penalty to zero if this is not required)
+        if penalty ~= 0
+            for m=1:size(sampleSmall,1)
+                devTotal(j) = devTotal(j) + sum(abs(exp(sampleSmallTemp(m,:))>exp(meanReq+3*stdevs'))) * penalty;
+            end
+        end
+        
+    elseif optType == 1
+        [devTotal(j)] = KS_stat(PerTgt, emp_cdf, sampleSmallTemp, meanReq, stdevs);
+    end
+    
+    % Scale factors for either type of optimization should not
+    % exceed the maximum
+    if (scaleFac(j) > maxScale)
+        devTotal(j) = devTotal(j) + 1000000;
+    end
+    
+    % Should cause improvement and record should not be repeated
+    if (any(recID == j))
+        devTotal(j) = 100000;
+    end
+
+end
+
+end
+
+function [ sumDn ] = KS_stat( periods, emp_cdf, sampleSmall, means, stdevs )
+% calculate sum of all KS-test statistics 
+
+sortedlnSa = [min(sampleSmall); sort(sampleSmall)];
+norm_cdf = normcdf(sortedlnSa,repmat(means,size(sampleSmall,1)+1,1),repmat(stdevs,size(sampleSmall,1)+1,1));
+Dn = max(abs(repmat(emp_cdf',1,length(periods)) - norm_cdf));
+sumDn = sum(Dn);
+
+end
+
+

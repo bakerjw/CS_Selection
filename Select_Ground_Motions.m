@@ -18,12 +18,12 @@
 %% OUTPUT VARIABLES
 %
 % finalRecords      : Record numbers of selected records
-% finalScaleFactors : Scale factors
+% finalScaleFactors : Corresponding scale factors
 %
 % (these variables are also output to a text file specified by the outputFile variable)
 %
 % The final cell in this m file shows how to plot the selected spectra
-% using this information.
+% using this information. 
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -44,34 +44,33 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Certain variables are stored as parts of data structures which will later
 % be incorporated in the optimization portion of the code. Required user
-% input values are indicated for the user. Some of these are labeled as
-% advanced user inputs and are set to default values which the user may
-% choose to change. Other variables described below are calculated within
-% this script or other functions. The data structures are as follows:
+% input values are indicated for the user. Some variables described below
+% are calculated within this script or other functions. The data structures
+% are as follows:
 %
 % optInputs - input values needed to run the optimization function:
+%            nBig       : The number of spectra that will be searched
+%            isScaled   : The user will input 1 to allow records to be 
+%                         scaled, and input 0 otherwise 
+%            maxScale   : The maximum allowable scale factor
+%            indT1      : This is the index of T1, the conditioning period
+%            recID      : This is a vector of index values for chosen
+%                         spectra
+%            tol        : User input percent error tolerance to determine
+%                         whether or not optimization can be skipped (this
+%                         will only be used for SSE optimization)
 %            optType    : For greedy optimization, the user will input a 0
 %                         to use the sum of squared errors approach to 
 %                         optimize the selected spectra, or a 1 to use 
 %                         D-statistic calculations from the KS-test
-%            tol        : User input percent error tolerance to determine
-%                         whether or not optimization can be skipped (this
-%                         will only be used for SSE optimization)
-%            PerTgt     : Periods at which the target spectrum needs to be
-%                         computed (logarithmically spaced)
-%            T1         : Period at which spectra should be scaled and 
-%                         matched 
-%            nBig       : The number of allowed spectra
-%            recID      : This is a vector of index values for chosen
-%                         spectra
-%            rec        : This is the index of T1, the conditioning period
 %            penalty    : If a penalty needs to be applied to avoid selecting
 %                         spectra that have spectral acceleration values 
 %                         beyond 3 sigma at any of the periods, set a value
 %                         here. Use 0 otherwise.
 %            weights    : [Weight for error in mean, Weight for error 
-%                         in standard deviation] e.g., [1.0,1.0] 
-%            nLoop      : Number of loops of optimations to perform.
+%                         in standard deviation] e.g., [1.0,1.0] (used only
+%                         in SSE optimization)
+%            nLoop      : Number of loops of optimizations to perform.
 %                         Default value = 2
 % 
 % Tgts      - The target values (means and covariances) being matched
@@ -86,17 +85,16 @@
 % IMs       - The intensity measure values (from SaKnown) chosen and the 
 %             values available:
 %            sampleSmall : matrix of selected response spectra 
-%            sampleBig   : The matrix of allowed spectra 
+%            sampleBig   : The matrix of spectra that will be searched
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Variable definitions for more user inputs: 
 % SaKnown   : (N*P matrix)
 %             This is a matrix of Sa values at different periods (P) for
 %             available ground-motion time histories (N).
-%             Usually, the structure's fundamental period.
-% perKnown  : The set of P periods.
+% knownPer  : The set of P known periods.
 %
-% If a database other than the NGA database is used, also define the
+% If a database other than the provided databases is used, also define the
 % following variables:
 % 
 % soil_Vs30        : Soil Vs30 values corresponding to all the records
@@ -108,42 +106,53 @@
 
 % Ground motion database and type of selection 
 databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
-optInputs.cond       = 0;
+optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
 
 % Number of ground motions and spectral periods of interest
 optInputs.nGM        = 20;      % number of ground motions to be selected 
-optInputs.T1         = 0.5; 
-optInputs.Tmin       = 0.1;     % smallest spectral period of interest
-optInputs.Tmax       = 10;      % largest spectral period of interest
-optInputs.PerTgt     = logspace(log10(optInputs.Tmin),log10(optInputs.Tmax),30);
+optInputs.T1         = 0.5;     % Period at which spectra should be scaled and matched 
+Tmin                 = 0.1;     % smallest spectral period of interest
+Tmax                 = 10;      % largest spectral period of interest
+optInputs.TgtPer     = logspace(log10(Tmin),log10(Tmax),30); % Periods at which the target spectrum needs to be computed (logarithmically spaced)
 
 % other parameters to scale motions and evaluate selections 
-optInputs.isScaled   = 1;       % =1 to allow scaling, =0 otherwise
-optInputs.maxScale   = 4;       % maximum allowable scale factor
+optInputs.isScaled   = 1;       
+optInputs.maxScale   = 4;       
 optInputs.tol        = 15; 
+optInputs.optType    = 0; 
+optInputs.penalty    = 0;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
-optInputs.penalty    = 0;
-optInputs.optType    = 0; 
 
-% User inputs to specify the target earthquake scenario
+% User inputs to specify the target earthquake scenario (remove unused once
+% CB_2014_nga is added correctly)
 M_bar       = 7.5;      % earthquake magnitude
-Rrup        = 10;       % closest distance to fault rupture (km)
+R_bar       = 10;       % distance corresponding to the target scenario earthquake
+Rrup        = R_bar;    % closest distance to fault rupture (km)
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
 eps_bar     = 1.5;      % epsilon value (used only for conditional selection)
-Vs30        = 260;      % Average shear wave velocity in the top 30m of the soil (m/s)
-Ztor        = 0;        % Depth to the top of coseismic rupture (km)
-delta       = 90;       % Average dip of the rupture (degrees)
-lambda      = 180;      % Rake angle (degrees)
-Zvs         = 2;        % Depth to the 2.5 km/s shear-wave velocity horizon (km)
+Vs30        = 260;      % average shear wave velocity in the top 30m of the soil (m/s)
+Ztor        = 0;        % depth to the top of coseismic rupture (km)
+delta       = 90;       % average dip of the rupture (degrees)
+lambda      = 180;      % rake angle (degrees)
+Zvs         = 2;        % depth to the 2.5 km/s shear-wave velocity horizon (km)
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
 
+% Additional user inputs for CB_2014_nga (updated prediction equation)
+Rx          = R_bar;    % closest distance to the surface projection of the coseismic fault rupture plane (km)
+W           = 16;       % down-dipth width of the rupture plain (km) (San Andreas entire width/depth (estmiate))
+Zbot        = Ztor + W; % depth to bottom of seismogenic crust (km)
+Fhw         = 1;        % hanging wall effect, = 1 for including, = 0 for excluding
+Z25         = Zvs;      % depth to the 2.5 km/s shear-wave velocity horizon (km), if in California or Japan and Z2.5 is unknown, input 999
+Zhyp        = 999;      % hypocentral depth of earthquake measured from sea level (km), =999 if unknown
+region      = 0;        % default, global 
+
 % Ground motion properties to require when selecting from the database. 
-allowedVs30          = [0 500];     % Upper and lower bound of allowable Vs30 values 
-allowedMag           = [4 9];       % Upper and lower bound of allowable magnitude values
-allowedD             = [0 100];     % Upper and lower bound of allowable distance values
+allowedVs30          = [0 500];     % upper and lower bound of allowable Vs30 values 
+allowedMag           = [4 9];       % upper and lower bound of allowable magnitude values
+allowedD             = [0 100];     % upper and lower bound of allowable distance values
 
 % Miscellaneous other inputs
 showPlots            = 1;   % =1 to plot results, =0 to suppress plots
@@ -177,36 +186,37 @@ else % two-component selection
         SaKnown     = Sa_RotD100;
     else
         fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
+        % if data corresponding to user input RotD value does not exist,
+        % use the geometric mean of two single-component directions
+        SaKnown = sqrt(Sa_1.*Sa_2);
     end
 end
-
 
 %% Arrange available spectra in usable format and check for invalid values
 
 % Create variable for known periods
-perKnown = Periods;
+knownPer = Periods; 
 
-% Modify PerTgt to include T1 if running a conditional selection
-if optInputs.cond == 1 && ~any(optInputs.PerTgt == optInputs.T1)
-    optInputs.PerTgt = sort([optInputs.PerTgt optInputs.T1]);
+% Modify TgtPer to include T1 if running a conditional selection
+if optInputs.cond == 1 && ~any(optInputs.TgtPer == optInputs.T1)
+    optInputs.TgtPer = sort([optInputs.TgtPer optInputs.T1]);
 end
 
-% Match periods (known periods and periods for error computations) save the
-% indicies of the matched periods in perKnown
-recPer = zeros(length(optInputs.PerTgt),1);
-for i=1:length(optInputs.PerTgt)
-    [~ , recPer(i)] = min(abs(perKnown - optInputs.PerTgt(i)));
+% Match periods (known periods and target periods for error computations) 
+% save the indicies of the matched periods in knownPer
+indPer = zeros(length(optInputs.TgtPer),1);
+for i=1:length(optInputs.TgtPer)
+    [~ , indPer(i)] = min(abs(knownPer - optInputs.TgtPer(i)));
 end
 
 % Remove any repeated values from PerTgt and redefine PerTgt as periods 
 % provided in databases
-recPer = unique(recPer);
-optInputs.PerTgt = perKnown(recPer);
+indPer = unique(indPer);
+optInputs.TgtPer = knownPer(indPer);
 
 % Identify the index of T1 within PerTgt and the final number of periods in
 % PerTgt
-[~, optInputs.rec] = min(abs(optInputs.PerTgt - optInputs.T1));
-% numPer = length(optInputs.PerTgt); % NOTE - Jack commented this out on 12/15/2015, as it doesn't seem to be used anywhere
+[~, optInputs.indT1] = min(abs(optInputs.TgtPer - optInputs.T1));
 
 %% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
@@ -214,12 +224,12 @@ recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
 recValidMag = magnitude > allowedMag(1) & magnitude < allowedMag(2);
 recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
 
-% only the allowable records will be searched
+% find indicies of allowable records that will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 
 % Process available spectra
 SaKnown = SaKnown(allowedIndex,:);
-IMs.sampleBig = log(SaKnown(:,recPer));
+IMs.sampleBig = log(SaKnown(:,indPer));
 optInputs.nBig = size(IMs.sampleBig,1);
 
 fprintf('Number of allowed ground motions = %i \n \n', length(allowedIndex))
@@ -227,24 +237,24 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 %% Compute target means and covariances of spectral values 
 
-% arrange periods for which correlations will be calculated
-perKnownCorr = perKnown;
-if optInputs.cond == 1 && ~any(perKnown == optInputs.T1)
-    perKnownCorr = sort([perKnown optInputs.T1]);
-end
-perKnownCorr = perKnownCorr(perKnownCorr <=10);
-
 % compute the median and standard deviations of RotD50 response spectrum values 
-[sa, sigma] = CB_2008_nga (M_bar, perKnownCorr, Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
-% modify spectral targets if RotD100 values were specified
-if RotD == 100
-   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( perKnownCorr ); % median and sigma of RotD100/RotD50 ratio
-   sa = sa .*rotD100Ratio;
-   sigma = sqrt ( sigma.^2 + rotD100Sigma .^2);
+% [sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
+
+% need: Rx, W, Zbot, Fhw, Z25 (Zvs??), Zhyp (Zvs??), region
+[sa, sigma] = CB_2014_nga(M_bar, knownPer(knownPer<=10), Rrup, Rjb, Rx, W, Ztor, Zbot, delta, lambda, Fhw, Vs30, Z25, Zhyp, region);
+
+% modify spectral targets if RotD100 values were specified for
+% two-component selection, see the following document for more details:
+%  Shahi, S. K., and Baker, J. W. (2014). "NGA-West2 models for ground-
+%  motion directionality." Earthquake Spectra, 30(3), 1285-1300.
+if RotD == 100 && arb == 2 
+   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); 
+   sa = sa .*rotD100Ratio; % from equation (1) of the above paper
+   sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
 % compute the target means, covariances, and correlations 
-[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(recPer, perKnown, perKnownCorr, sa,...
+[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(indPer, knownPer, sa,...
                                                 sigma, useVar, eps_bar, optInputs);
                                             
 %% Simulate response spectra matching the above targets, for use in record selection
@@ -306,12 +316,11 @@ Tgts.stdevs = sqrt(diag(Tgts.covReq))';
 origMeans = exp(mean(IMs.sampleSmall));
 origStdevs = std(IMs.sampleSmall);
 
-% Define all other periods besides T1
-notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec)); 
-
-% Compute maximum percent error of selection relative to target
+% Compute maximum percent error of selection relative to target means and
+% standard deviations (do not compute standard deviation error at T1 for
+% conditional selection)
 meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
-stdErr = max(abs(origStdevs(notT1)-Tgts.stdevs(notT1))./Tgts.stdevs(notT1))*100;
+stdErr = max(abs(origStdevs(1:end ~= optInputs.indT1)-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
 
 % Display the original maximum error between the selected gm and the target
 fprintf('End of simulation stage \n')
@@ -322,12 +331,12 @@ fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n'
 
 % if selected motions do not yet meet tolerances, further optimize
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOpt(optInputs, Tgts, IMs);  
+    [IMs.sampleSmall, finalRecords, finalScaleFac] = GreedyOpt(optInputs, Tgts, IMs);  
     % [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOptPar(optInputs, Tgts, IMs); % a version of the optimization function that uses parallel processing
+
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
     finalRecords = optInputs.recID;
-    finalScaleFactors = finalScaleFac;
 end
 
 
@@ -355,9 +364,9 @@ end
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1 
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFactors(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
+        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
     else 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFactors(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
     end
 end
 
