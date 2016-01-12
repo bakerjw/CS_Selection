@@ -1,45 +1,57 @@
-function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOpt( optInputs, Tgts, IMs )
+function [ sampleSmall, finalRecords, finalScaleFac ] = GreedyOpt( optInputs, Tgts, IMs )
 % This function will perform a greedy optimization on a set of ground
 % motions using the sum of squared errors approach to check the set of
 % selected ground motions against target means and variances
 %   The inputs for the function are three structures that are also defined 
 %   in the Select_Ground_Motions script:
-%       optInputs   : There are twelve general inputs needed for
-%                     optimization -
-%                           nLoop    : number of times full optimization is
-%                                      run                       
-%                           nGM      : number of ground motions to select
-%                           cond     : 0 for conditional selection, else 1
-%                           T1       : conditonal selection - period to
-%                                      match
-%                           isScaled : to scale spectra or not
-%                           penalty  : add a penalty for bad spectra
-%                           weights  : weight for error in mean and std dev
-%                           PerTgt   : periods at which target spectra is
-%                                      calculated
-%                           maxScale : maximum scaling factor for spectra
-%                           nBig     : number of allowed spectra
-%                           recID    : indicies of 
-%                           tol      : user-defined percent error tolerance
-%                           optType  : 0 for sum of squared errors
-%                                      calculations, 1 for KS-test 
-%                                      Dn value calculations
+%       optInputs - 
+%                  cond       : 0 to run unconditional selection; 1 to run 
+%                               conditional
+%                  nGM        : Number of ground motions to be selected
+%                  T1         : Period at which spectra should be scaled and matched
+%                  TgtPer     : Periods at which the target spectrum needs to 
+%                               be computed (logarithmically spaced)
+%                  indT1      : Index of T1 within PerTgt
+%                  lnSa1      : Spectral accleration at T1 that all ground 
+%                               motions will be scaled to
+%                  nBig       : The number of spectra that will be searched
+%                  isScaled   : The user will input 1 to allow records to be 
+%                               scaled, and input 0 otherwise 
+%                  maxScale   : The maximum allowable scale factor
+%                  indT1      : This is the index of T1, the conditioning period
+%                  recID      : This is a vector of index values for chosen
+%                               spectra
+%                  tol        : User input percent error tolerance to determine
+%                               whether or not optimization can be skipped (this
+%                               will only be used for SSE optimization)
+%                  optType    : For greedy optimization, the user will input a 0
+%                               to use the sum of squared errors approach to 
+%                               optimize the selected spectra, or a 1 to use 
+%                               D-statistic calculations from the KS-test
+%                  penalty    : If a penalty needs to be applied to avoid selecting
+%                               spectra that have spectral acceleration values 
+%                               beyond 3 sigma at any of the periods, set a value
+%                               here. Use 0 otherwise.
+%                  weights    : [Weight for error in mean, Weight for error 
+%                              in standard deviation] e.g., [1.0,1.0] (used only
+%                              in SSE optimization)
+%                  nLoop      : Number of loops of optimizations to perform.
+%                              Default value = 2
 %
-%       Tgts        : This structure represents the target values the user
-%                     would like to match -
-%                           meanReq     : The target means (vector)
-%                           covReq      : The target covariances (matrix)
-%                           means       : exp(meanReq) - formatted for
-%                                         plotting
-%                           stdevs      : sqrt(diag(covReq)) - formatted
-%                                         for plotting
-%       IMs         : This structure represents the intensity measures
-%                     being optimized -
-%                           sampleSmall   : The matrix of ground motions
-%                                           being optimized
-%                           sampleBig     : The matrix of available ground
-%                                           motions the set is being chosen 
-%                                           from
+%       Tgts      - The target values (means and covariances) being matched
+%                  meanReq    : Estimated target response spectrum means (vector of
+%                               spectral values, one at each period)
+%                  covReq     : Matrix of response spectrum covariances
+%                  means      : The meanReq vector re-formatted to be equal to
+%                               exp(meanReq) in order to plot the means 
+%                               properly on a log scale
+%                  stdevs     : A vector of standard deviations at each period
+% 
+%       IMs       - The intensity measure values (from SaKnown) chosen and the 
+%                   values available:
+%                  sampleSmall : matrix of selected response spectra 
+%                  sampleBig   : The matrix of spectra that will be searched
+% 
 
 % Redefine sampleSmall since the size will be continuously changing as the
 % optimization runs. The output sampleSmall will not be returned as part of
@@ -56,30 +68,30 @@ end
 
 % if optimizing the ground motions by calculating the Dn value, first
 % calculate the emperical CDF values (which will be the same at each
-% period) and initialize a vector of Dn values
+% period) 
 if optInputs.optType == 1
     emp_cdf = linspace(0,1,optInputs.nGM+1);
 end
 
-% Initialize scale factor vector
+% Initialize scale factor vector for each iteration and a scale factor
+% vector for the final selected records 
 scaleFac = ones(optInputs.nBig,1);
+finalScaleFac = ones(optInputs.nGM,1);
+
 for k=1:optInputs.nLoop % Number of passes
-    
     for i=1:optInputs.nGM % Selects nGM ground motions
         display([num2str(round(((k-1)*optInputs.nGM + i-1)/(optInputs.nLoop*optInputs.nGM)*100)) '% done']);
-        
-        devTotal = zeros(optInputs.nBig,1);
-        sampleSmall(i,:) = [];
-        optInputs.recID(i,:) = [];
+        devTotal = zeros(optInputs.nBig,1); % initialize measure of deviation for each selected ground motion
+        sampleSmall(i,:) = []; % remove initially selected record to be replaced
+        optInputs.recID(i,:) = []; 
         
         if optInputs.isScaled == 1
             if optInputs.cond == 1
-                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.rec));
+                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.indT1));
             elseif optInputs.cond == 0
                 [scaleFac, devTotal] = bestScaleFactor(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.stdevs, optInputs.weights, optInputs.maxScale);
             end
         end
-        
         % Try to add a new spectra to the subset list
         for j = 1:optInputs.nBig
             sampleSmall = [sampleSmall;IMs.sampleBig(j,:)+log(scaleFac(j))];
@@ -111,17 +123,17 @@ for k=1:optInputs.nLoop % Number of passes
             % Scale factors for either type of optimization should not
             % exceed the maximum
             if (scaleFac(j) > optInputs.maxScale)
-                devTotal(j) = devTotal(j) + 1000000;
+                devTotal(j) = 1000000;
             end
             
             % Should cause improvement and record should not be repeated
             if (any(optInputs.recID == j))
-                devTotal(j) = 100000;
+                devTotal(j) = 1000000;
             end
             sampleSmall = sampleSmall(1:end-1,:);
         end
         
-        [minDevFinal, minID] = min(devTotal);
+        [~ , minID] = min(devTotal);
         % Add new element in the right slot
         if optInputs.isScaled == 1
             finalScaleFac(i) = scaleFac(minID);
@@ -138,10 +150,9 @@ for k=1:optInputs.nLoop % Number of passes
     % sampleSmall and then recalculate new maximum percent errors of means
     % and standard deviations 
     if optInputs.optType == 0
-        notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec));
         stdevs = std(sampleSmall);
         meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
-        stdErr = max(abs(stdevs(notT1) - Tgts.stdevs(notT1))./Tgts.stdevs(notT1))*100;
+        stdErr = max(abs(stdevs(1:end ~= optInputs.indT1) - Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
         fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
         
@@ -160,7 +171,7 @@ display('100% done');
 
 % Output information
 finalRecords = optInputs.recID;
-finalScaleFactors = finalScaleFac';
+finalScaleFac = finalScaleFac';
 
 
 
