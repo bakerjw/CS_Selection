@@ -225,23 +225,15 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 %% Compute target means and covariances of spectral values 
 
-% compute the median and standard deviations of RotD50 response spectrum values 
-[sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
-
-% modify spectral targets if RotD100 values were specified for
-% two-component selection, see the following document for more details:
-%  Shahi, S. K., and Baker, J. W. (2014). "NGA-West2 models for ground-
-%  motion directionality." Earthquake Spectra, 30(3), 1285-1300.
-if RotD == 100 && arb == 2 
-   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); 
-   sa = sa.*rotD100Ratio; % from equation (1) of the above paper
-   sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
+[corrReq, Tgts.meanReq, Tgts.covReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
+                                                M_bar, Rjb, Fault_Type, region, z1, Vs30);
+% define the spectral accleration at T1 that all ground motions will be scaled to
+optInputs.lnSa1 = Tgts.meanReq(optInputs.T1); 
+if optInputs.cond == 1 
+    scaleFacIndex = optInputs.indT1;
+else
+    scaleFacIndex = (1:length(optInputs.TgtPer))';
 end
-
-% compute the target means, covariances, and correlations 
-[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(indPer, knownPer, sa,...
-                                                sigma, useVar, eps_bar, optInputs);
-                                            
 %% Simulate response spectra matching the above targets, for use in record selection
 
 % Set initial seed for simulation

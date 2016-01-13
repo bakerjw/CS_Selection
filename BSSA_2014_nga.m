@@ -4,7 +4,7 @@
 %
 % modified by Jack Baker, 3/3/2014
 %
-% BSSA14 NGA-West2 model, based on teh following citation
+% BSSA14 NGA-West2 model, based on the following citation
 %
 % Boore, D. M., Stewart, J. P., Seyhan, E., and Atkinson, G. M. (2014). 
 % “NGA-West2 Equations for Predicting PGA, PGV, and 5% Damped PSA for 

@@ -1,4 +1,4 @@
-function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( indPer, knownPer, sa, sigma, useVar, eps_bar, optInputs )
+function [ corrMatrix, TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
 % ComputeTargets will calculate and return the target mean spectrum, target
 % covariance matrix, and target correlation matrix for ground motion
 % selection. The index/indicies of PerTgt that will need to be scaled is
@@ -15,36 +15,37 @@ function [ scaleIndex, corrMatrix, Targets, optInputs ] = ComputeTargets( indPer
 %                             selection)
 %           optInputs       : optimization user inputs 
 %% Compute target mean spectrum from results of Campbell and Bozorgnia GMPE
-% Initialize variables for computing targets 
-% perKnownRec = find(perKnownCorr == optInputs.T1);
+
+% compute the median and standard deviations of RotD50 response spectrum values 
+if nargin < 8
+    sa = [];
+    sigma = [];
+else
+    [sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
+end
+
+% modify spectral targets if RotD100 values were specified for
+% two-component selection, see the following document for more details:
+%  Shahi, S. K., and Baker, J. W. (2014). "NGA-West2 models for ground-
+%  motion directionality." Earthquake Spectra, 30(3), 1285-1300.
+if RotD == 100 && arb == 2 
+   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); 
+   sa = sa.*rotD100Ratio; % from equation (1) of the above paper
+   sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
+end
 
 % (Log) Response Spectrum Mean: meanReq
 % Define indicies at which spectra will be scaled
-if optInputs.cond == 1 
-    scaleIndex = optInputs.indT1; 
-    
-%     % remove values at T1 in order to compute mean values to match known
-%     % periods
-%     if ~any(knownPer == optInputs.T1)
-%         sa(perKnownRec) = [];
-%         sigma(perKnownRec) = [];
-%     end
-    
+if optInputs.cond == 1   
     % compute correlations and the conditional mean spectrum
     rho = zeros(1,length(indPer));  
     for i = 1:length(indPer)
         rho(i) = baker_jayaram_correlation(knownPer(indPer(i)), optInputs.TgtPer(optInputs.indT1));
     end
-    Targets.meanReq = log(sa(indPer)) + sigma(indPer).*eps_bar.*rho;
-        
-    % define the spectral accleration at T1 that all ground motions will be
-    % scaled to
-    % add to main script
-%     optInputs.lnSa1 = Targets.meanReq(optInputs.indT1);
-    
+    TgtMean = log(sa(indPer)) + sigma(indPer).*eps_bar.*rho;
+
 elseif optInputs.cond == 0
-    scaleIndex = (1:length(optInputs.TgtPer))';
-    Targets.meanReq = log(sa(indPer));
+    TgtMean = log(sa(indPer));
 end
 
 
@@ -81,15 +82,15 @@ end
 
 %% Compute target conditional coveriance at periods of interest 
 if useVar == 0
-    Targets.covReq = zeros(length(optInputs.TgtPer));
+    TgtCovs = zeros(length(optInputs.TgtPer));
 else
-    Targets.covReq = corrMatrix(indPer,indPer).*covMatrix(indPer,indPer);
+    TgtCovs = corrMatrix(indPer,indPer).*covMatrix(indPer,indPer);
     
     % for conditional selection only, ensure that variances will be zero at
     % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
     if optInputs.cond == 1
-        Targets.covReq(optInputs.indT1,:) = repmat(1e-17,1,length(optInputs.TgtPer));
-        Targets.covReq(:,optInputs.indT1) = repmat(1e-17,length(optInputs.TgtPer),1);
+        TgtCovs(optInputs.indT1,:) = repmat(1e-17,1,length(optInputs.TgtPer));
+        TgtCovs(:,optInputs.indT1) = repmat(1e-17,length(optInputs.TgtPer),1);
     end    
 
 end
