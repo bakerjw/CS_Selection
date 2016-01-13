@@ -39,7 +39,8 @@ if optInputs.cond == 1
         
     % define the spectral accleration at T1 that all ground motions will be
     % scaled to
-    optInputs.lnSa1 = Targets.meanReq(optInputs.indT1);
+    % add to main script
+%     optInputs.lnSa1 = Targets.meanReq(optInputs.indT1);
     
 elseif optInputs.cond == 0
     scaleIndex = (1:length(optInputs.TgtPer))';

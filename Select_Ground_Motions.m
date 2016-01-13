@@ -126,28 +126,16 @@ optInputs.penalty    = 0;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
 
-% User inputs to specify the target earthquake scenario (remove unused once
-% CB_2014_nga is added correctly)
+% User inputs to specify the target earthquake scenario
 M_bar       = 7.5;      % earthquake magnitude
 R_bar       = 10;       % distance corresponding to the target scenario earthquake
-Rrup        = R_bar;    % closest distance to fault rupture (km)
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
 eps_bar     = 1.5;      % epsilon value (used only for conditional selection)
 Vs30        = 260;      % average shear wave velocity in the top 30m of the soil (m/s)
-Ztor        = 0;        % depth to the top of coseismic rupture (km)
-delta       = 90;       % average dip of the rupture (degrees)
-lambda      = 180;      % rake angle (degrees)
-Zvs         = 2;        % depth to the 2.5 km/s shear-wave velocity horizon (km)
+z1          = 999;      % basin depth (km), 999 if unknown
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
-
-% Additional user inputs for CB_2014_nga (updated prediction equation)
-Rx          = R_bar;    % closest distance to the surface projection of the coseismic fault rupture plane (km)
-W           = 16;       % down-dipth width of the rupture plain (km) (San Andreas entire width/depth (estmiate))
-Zbot        = Ztor + W; % depth to bottom of seismogenic crust (km)
-Fhw         = 1;        % hanging wall effect, = 1 for including, = 0 for excluding
-Z25         = Zvs;      % depth to the 2.5 km/s shear-wave velocity horizon (km), if in California or Japan and Z2.5 is unknown, input 999
-Zhyp        = 999;      % hypocentral depth of earthquake measured from sea level (km), =999 if unknown
-region      = 0;        % default, global 
+region      = 0;        % = 0 for global (incl. Taiwan)
+Fault_Type  = 1;        % = 1 for strike-slip fault
 
 % Ground motion properties to require when selecting from the database. 
 allowedVs30          = [0 Inf];     % upper and lower bound of allowable Vs30 values 
@@ -238,10 +226,7 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 %% Compute target means and covariances of spectral values 
 
 % compute the median and standard deviations of RotD50 response spectrum values 
-% [sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
-
-% need: Rx, W, Zbot, Fhw, Z25 (Zvs??), Zhyp (Zvs??), region
-[sa, sigma] = CB_2014_nga(M_bar, knownPer(knownPer<=10), Rrup, Rjb, Rx, W, Ztor, Zbot, delta, lambda, Fhw, Vs30, Z25, Zhyp, region);
+[sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
 
 % modify spectral targets if RotD100 values were specified for
 % two-component selection, see the following document for more details:
