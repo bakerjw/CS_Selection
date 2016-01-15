@@ -132,11 +132,19 @@ R_bar       = 10;       % distance corresponding to the target scenario earthqua
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
 eps_bar     = 1.5;      % epsilon value (used only for conditional selection)
 Vs30        = 260;      % average shear wave velocity in the top 30m of the soil (m/s)
-z1          = 999;      % basin depth (km), 999 if unknown
+z1          = 999;      % basin depth (km); depth from ground surface to the 1km/s shear-wave horizon,
+                        % =999 if unknown
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
-region      = 0;        % = 0 for global (incl. Taiwan)
-Fault_Type  = 1;        % = 1 for strike-slip fault
-
+region      = 0;        % =0 for global (incl. Taiwan)
+                        % =1 for California
+                        % =2 for Japan
+                        % =3 for China or Turkey
+                        % =4 for Italy
+Fault_Type  = 1;        % =0 for unspecified fault
+                        % =1 for strike-slip fault
+                        % =2 for normal fault
+                        % =3 for reverse fault
+                        
 % Ground motion properties to require when selecting from the database. 
 allowedVs30          = [0 Inf];     % upper and lower bound of allowable Vs30 values 
 allowedMag           = [4 9];       % upper and lower bound of allowable magnitude values
@@ -225,15 +233,16 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 %% Compute target means and covariances of spectral values 
 
+% Instead of computing the targets with the function below, the following
+% variables can be defined as long as they are the appropriate sizes
+% Tgts.meanReq = []; % lengh of TgtPer
+% Tgts.covReq = [];  % size [length(TgtPer) length(TgtPer)]
+% corrReq = [];      % size [length(knownPer) length(knownPer)]
+
+% Compute the target mean response spectrum and target covariance matrix
 [corrReq, Tgts.meanReq, Tgts.covReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
                                                 M_bar, Rjb, Fault_Type, region, z1, Vs30);
-% define the spectral accleration at T1 that all ground motions will be scaled to
-optInputs.lnSa1 = Tgts.meanReq(optInputs.T1); 
-if optInputs.cond == 1 
-    scaleFacIndex = optInputs.indT1;
-else
-    scaleFacIndex = (1:length(optInputs.TgtPer))';
-end
+
 %% Simulate response spectra matching the above targets, for use in record selection
 
 % Set initial seed for simulation
@@ -258,6 +267,14 @@ end
 simulatedSpectra = spectraSample{bestSample};
 
 %% Find best matches to the simulated spectra from ground-motion database
+
+% define the spectral accleration at T1 that all ground motions will be scaled to
+optInputs.lnSa1 = Tgts.meanReq(optInputs.T1); 
+if optInputs.cond == 1 
+    scaleFacIndex = optInputs.indT1;
+else
+    scaleFacIndex = (1:length(optInputs.TgtPer))';
+end
 
 % Initialize vectors
 optInputs.recID = zeros(optInputs.nGM,1);

@@ -17,9 +17,11 @@ function [ corrMatrix, TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, k
 %% Compute target mean spectrum from results of Campbell and Bozorgnia GMPE
 
 % compute the median and standard deviations of RotD50 response spectrum values 
+% if the GMPE arguments are not available, input the predicted sa and sigma
+% values 
 if nargin < 8
-    sa = [];
-    sigma = [];
+    sa = []; % input median results from any other GMPE (of length knownPer <= 10)
+    sigma = []; % input predicted sigmas
 else
     [sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
 end
@@ -49,7 +51,7 @@ elseif optInputs.cond == 0
 end
 
 
-%% Compute covariances at all periods 
+%% Compute covariances and correlations at all periods 
 covMatrix = zeros(length(sa));
 corrMatrix = zeros(length(sa));
 for i=1:length(sa)
@@ -65,7 +67,8 @@ for i=1:length(sa)
         var2 = sigma(j)^2;
 
         if optInputs.cond == 1 
-            sigma11 = [var1 baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2) var2];
+            sigmaCorr = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2);
+            sigma11 = [var1 sigmaCorr;sigmaCorr var2];
             sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
             % Correlations
