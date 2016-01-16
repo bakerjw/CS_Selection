@@ -171,7 +171,7 @@ display('100% done');
 
 % Output information
 finalRecords = optInputs.recID;
-finalScaleFac = finalScaleFac';
+% finalScaleFac = finalScaleFac';
 
 
 

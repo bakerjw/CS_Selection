@@ -126,31 +126,27 @@ optInputs.penalty    = 0;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
 
-% User inputs to specify the target earthquake scenario (remove unused once
-% CB_2014_nga is added correctly)
+% User inputs to specify the target earthquake scenario
 M_bar       = 7.5;      % earthquake magnitude
 R_bar       = 10;       % distance corresponding to the target scenario earthquake
-Rrup        = R_bar;    % closest distance to fault rupture (km)
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
 eps_bar     = 1.5;      % epsilon value (used only for conditional selection)
 Vs30        = 260;      % average shear wave velocity in the top 30m of the soil (m/s)
-Ztor        = 0;        % depth to the top of coseismic rupture (km)
-delta       = 90;       % average dip of the rupture (degrees)
-lambda      = 180;      % rake angle (degrees)
-Zvs         = 2;        % depth to the 2.5 km/s shear-wave velocity horizon (km)
+z1          = 999;      % basin depth (km); depth from ground surface to the 1km/s shear-wave horizon,
+                        % =999 if unknown
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
-
-% Additional user inputs for CB_2014_nga (updated prediction equation)
-Rx          = R_bar;    % closest distance to the surface projection of the coseismic fault rupture plane (km)
-W           = 16;       % down-dipth width of the rupture plain (km) (San Andreas entire width/depth (estmiate))
-Zbot        = Ztor + W; % depth to bottom of seismogenic crust (km)
-Fhw         = 1;        % hanging wall effect, = 1 for including, = 0 for excluding
-Z25         = Zvs;      % depth to the 2.5 km/s shear-wave velocity horizon (km), if in California or Japan and Z2.5 is unknown, input 999
-Zhyp        = 999;      % hypocentral depth of earthquake measured from sea level (km), =999 if unknown
-region      = 0;        % default, global 
-
+region      = 0;        % =0 for global (incl. Taiwan)
+                        % =1 for California
+                        % =2 for Japan
+                        % =3 for China or Turkey
+                        % =4 for Italy
+Fault_Type  = 1;        % =0 for unspecified fault
+                        % =1 for strike-slip fault
+                        % =2 for normal fault
+                        % =3 for reverse fault
+                        
 % Ground motion properties to require when selecting from the database. 
-allowedVs30          = [0 500];     % upper and lower bound of allowable Vs30 values 
+allowedVs30          = [0 Inf];     % upper and lower bound of allowable Vs30 values 
 allowedMag           = [4 9];       % upper and lower bound of allowable magnitude values
 allowedD             = [0 100];     % upper and lower bound of allowable distance values
 
@@ -237,26 +233,16 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 %% Compute target means and covariances of spectral values 
 
-% compute the median and standard deviations of RotD50 response spectrum values 
-% [sa, sigma] = CB_2008_nga (M_bar, knownPer(knownPer<=10), Rrup, Rjb, Ztor, delta, lambda, Vs30, Zvs, arb); 
+% Instead of computing the targets with the function below, the following
+% variables can be defined as long as they are the appropriate sizes
+% Tgts.meanReq = []; % lengh of TgtPer
+% Tgts.covReq = [];  % size [length(TgtPer) length(TgtPer)]
+% corrReq = [];      % size [length(knownPer) length(knownPer)]
 
-% need: Rx, W, Zbot, Fhw, Z25 (Zvs??), Zhyp (Zvs??), region
-[sa, sigma] = CB_2014_nga(M_bar, knownPer(knownPer<=10), Rrup, Rjb, Rx, W, Ztor, Zbot, delta, lambda, Fhw, Vs30, Z25, Zhyp, region);
+% Compute the target mean response spectrum and target covariance matrix
+[corrReq, Tgts.meanReq, Tgts.covReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
+                                                M_bar, Rjb, Fault_Type, region, z1, Vs30);
 
-% modify spectral targets if RotD100 values were specified for
-% two-component selection, see the following document for more details:
-%  Shahi, S. K., and Baker, J. W. (2014). "NGA-West2 models for ground-
-%  motion directionality." Earthquake Spectra, 30(3), 1285-1300.
-if RotD == 100 && arb == 2 
-   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); 
-   sa = sa .*rotD100Ratio; % from equation (1) of the above paper
-   sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
-end
-
-% compute the target means, covariances, and correlations 
-[scaleFacIndex, corrReq, Tgts, optInputs] = ComputeTargets(indPer, knownPer, sa,...
-                                                sigma, useVar, eps_bar, optInputs);
-                                            
 %% Simulate response spectra matching the above targets, for use in record selection
 
 % Set initial seed for simulation
@@ -281,6 +267,14 @@ end
 simulatedSpectra = spectraSample{bestSample};
 
 %% Find best matches to the simulated spectra from ground-motion database
+
+% Define the spectral accleration at T1 that all ground motions will be scaled to
+optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
+if optInputs.cond == 1 
+    scaleFacIndex = optInputs.indT1;
+else
+    scaleFacIndex = (1:length(optInputs.TgtPer))';
+end
 
 % Initialize vectors
 optInputs.recID = zeros(optInputs.nGM,1);
@@ -339,7 +333,6 @@ else % otherwise, skip greedy optimization
     finalRecords = optInputs.recID;
 end
 
-
 %% Plot results, if desired
 
 if (showPlots)
@@ -364,9 +357,11 @@ end
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1 
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
+%         fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
+        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
     else 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
+%         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename_1{rec}),char(Filename_2{rec}),[char(dirLocation{rec}) char(Filename_1{rec})],[char(dirLocation{rec}) char(Filename_2{rec})]);
     end
 end
 
