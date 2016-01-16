@@ -105,7 +105,7 @@
 %% User inputs begin here
 
 % Ground motion database and type of selection 
-databaseFile         = 'NGA_W1_meta_data'; % filename of the target database
+databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
@@ -268,8 +268,8 @@ simulatedSpectra = spectraSample{bestSample};
 
 %% Find best matches to the simulated spectra from ground-motion database
 
-% define the spectral accleration at T1 that all ground motions will be scaled to
-optInputs.lnSa1 = Tgts.meanReq(optInputs.T1); 
+% Define the spectral accleration at T1 that all ground motions will be scaled to
+optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
 if optInputs.cond == 1 
     scaleFacIndex = optInputs.indT1;
 else
@@ -332,7 +332,6 @@ else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
     finalRecords = optInputs.recID;
 end
-
 
 %% Plot results, if desired
 
