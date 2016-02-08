@@ -105,7 +105,7 @@
 %% User inputs begin here
 
 % Ground motion database and type of selection 
-databaseFile         = 'BBP_GP_meta_data'; % filename of the target database
+databaseFile         = 'BBP_SDSU_meta_data'; % filename of the target database
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
