@@ -116,7 +116,7 @@ for k=1:optInputs.nLoop % Number of passes
             elseif optInputs.optType == 1   
                 sortedlnSa = [min(sampleSmall); sort(sampleSmall)];
                 norm_cdf = normcdf(sortedlnSa,repmat(Tgts.meanReq,optInputs.nGM+1,1),repmat(Tgts.stdevs,optInputs.nGM+1,1));
-                Dn = max(abs(repmat(emp_cdf',1,length(optInputs.PerTgt)) - norm_cdf));
+                Dn = max(abs(repmat(emp_cdf',1,length(optInputs.TgtPer)) - norm_cdf));
                 devTotal(j) = sum(Dn);   
             end
             

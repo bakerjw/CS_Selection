@@ -1,4 +1,4 @@
-function [ corrMatrix, TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
+function [ TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
 % ComputeTargets will calculate and return the target mean spectrum, target
 % covariance matrix, and target correlation matrix for ground motion
 % selection. The index/indicies of PerTgt that will need to be scaled is
@@ -87,14 +87,13 @@ end
 if useVar == 0
     TgtCovs = zeros(length(optInputs.TgtPer));
 else
-    TgtCovs = corrMatrix(indPer,indPer).*covMatrix(indPer,indPer);
-    
+    TgtCovs = corrMatrix.*covMatrix;
+
     % for conditional selection only, ensure that variances will be zero at
     % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
     if optInputs.cond == 1
-        TgtCovs(optInputs.indT1,:) = repmat(1e-17,1,length(optInputs.TgtPer));
-        TgtCovs(:,optInputs.indT1) = repmat(1e-17,length(optInputs.TgtPer),1);
-    end    
-
+        TgtCovs(indPer(optInputs.indT1),:) = repmat(1e-17,1,length(knownPer));
+        TgtCovs(:,indPer(optInputs.indT1)) = repmat(1e-17,length(knownPer),1);
+    end
 end
 
