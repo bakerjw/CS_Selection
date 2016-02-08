@@ -40,14 +40,14 @@ end
 % Define indicies at which spectra will be scaled
 if optInputs.cond == 1   
     % compute correlations and the conditional mean spectrum
-    rho = zeros(1,length(indPer));  
-    for i = 1:length(indPer)
-        rho(i) = baker_jayaram_correlation(knownPer(indPer(i)), optInputs.TgtPer(optInputs.indT1));
+    rho = zeros(1,length(sa));  
+    for i = 1:length(sa)
+        rho(i) = baker_jayaram_correlation(knownPer(i), optInputs.TgtPer(optInputs.indT1));
     end
-    TgtMean = log(sa(indPer)) + sigma(indPer).*eps_bar.*rho;
+    TgtMean = log(sa) + sigma.*eps_bar.*rho;
 
 elseif optInputs.cond == 0
-    TgtMean = log(sa(indPer));
+    TgtMean = log(sa);
 end
 
 

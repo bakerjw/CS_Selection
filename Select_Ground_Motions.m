@@ -105,13 +105,13 @@
 %% User inputs begin here
 
 % Ground motion database and type of selection 
-databaseFile         = 'NGA_W1_meta_data'; % filename of the target database
+databaseFile         = 'BBP_SDSU_meta_data'; % filename of the target database
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
 
 % Number of ground motions and spectral periods of interest
-optInputs.nGM        = 20;      % number of ground motions to be selected 
+optInputs.nGM        = 10;      % number of ground motions to be selected 
 optInputs.T1         = 0.5;     % Period at which spectra should be scaled and matched 
 Tmin                 = 0.1;     % smallest spectral period of interest
 Tmax                 = 10;      % largest spectral period of interest
@@ -146,7 +146,7 @@ Fault_Type  = 1;        % =0 for unspecified fault
                         % =3 for reverse fault
                         
 % Ground motion properties to require when selecting from the database. 
-allowedVs30          = [180 360];     % upper and lower bound of allowable Vs30 values 
+allowedVs30          = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
 allowedMag           = [-Inf Inf];       % upper and lower bound of allowable magnitude values
 allowedD             = [-Inf Inf];     % upper and lower bound of allowable distance values
 
@@ -241,8 +241,6 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 % Compute the target mean response spectrum at target periods and target
 % covariance matrix at all periods
-
-%%%% change name of covReq and meanReq
 [knownMeanReq, knownCovReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
                                                 M_bar, Rjb, Fault_Type, region, z1, Vs30);
 % Define covariance matrix at target periods  
@@ -363,10 +361,8 @@ end
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1 
-%         fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
         fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
     else 
-%         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename_1{rec}),char(Filename_2{rec}),[char(dirLocation{rec}) char(Filename_1{rec})],[char(dirLocation{rec}) char(Filename_2{rec})]);
     end
 end
