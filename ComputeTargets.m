@@ -85,15 +85,15 @@ end
 
 %% Compute target conditional coveriance at periods of interest 
 if useVar == 0
-    TgtCovs = zeros(length(optInputs.TgtPer));
+    TgtCovs = zeros(length(knownPer));
 else
     TgtCovs = corrMatrix.*covMatrix;
 
     % for conditional selection only, ensure that variances will be zero at
     % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
     if optInputs.cond == 1
-        TgtCovs(indPer(optInputs.indT1),:) = repmat(1e-17,1,length(knownPer));
-        TgtCovs(:,indPer(optInputs.indT1)) = repmat(1e-17,length(knownPer),1);
+        TgtCovs(indPer(optInputs.indT1),:) = repmat(1e-17,1,length(sa));
+        TgtCovs(:,indPer(optInputs.indT1)) = repmat(1e-17,length(sa),1);
     end
 end
 

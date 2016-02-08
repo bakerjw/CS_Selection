@@ -105,7 +105,7 @@
 %% User inputs begin here
 
 % Ground motion database and type of selection 
-databaseFile         = 'BBP_SDSU_meta_data'; % filename of the target database
+databaseFile         = 'BBP_GP_meta_data'; % filename of the target database
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
@@ -352,7 +352,7 @@ fin = fopen(outputFile,'w');
 % print header information
 fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});
 if arb == 1
-    fprintf(fin,'%s \t %s \t %s \t %s \n','Record Number','Scale Factor','File Name','URL');
+    fprintf(fin,'%s \t %s \t %s \t %s \t %s \n','Record Number','Record Sequence Number','Scale Factor','File Name','URL');
 elseif arb == 2
     fprintf(fin,'%s \t %s \t %s \t %s \t %s \t %s \t %s \n','Record Number','Record Sequence Number','Scale Factor','File Name Dir. 1','File Name Dir. 2', 'URL 1', 'URL 2');
 end
@@ -361,7 +361,7 @@ end
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1 
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
     else 
         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename_1{rec}),char(Filename_2{rec}),[char(dirLocation{rec}) char(Filename_1{rec})],[char(dirLocation{rec}) char(Filename_2{rec})]);
     end
