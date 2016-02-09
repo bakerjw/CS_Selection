@@ -1,4 +1,4 @@
-function [ corrMatrix, TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
+function [ TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
 % ComputeTargets will calculate and return the target mean spectrum, target
 % covariance matrix, and target correlation matrix for ground motion
 % selection. The index/indicies of PerTgt that will need to be scaled is
@@ -40,14 +40,14 @@ end
 % Define indicies at which spectra will be scaled
 if optInputs.cond == 1   
     % compute correlations and the conditional mean spectrum
-    rho = zeros(1,length(indPer));  
-    for i = 1:length(indPer)
-        rho(i) = baker_jayaram_correlation(knownPer(indPer(i)), optInputs.TgtPer(optInputs.indT1));
+    rho = zeros(1,length(sa));  
+    for i = 1:length(sa)
+        rho(i) = baker_jayaram_correlation(knownPer(i), optInputs.TgtPer(optInputs.indT1));
     end
-    TgtMean = log(sa(indPer)) + sigma(indPer).*eps_bar.*rho;
+    TgtMean = log(sa) + sigma.*eps_bar.*rho;
 
 elseif optInputs.cond == 0
-    TgtMean = log(sa(indPer));
+    TgtMean = log(sa);
 end
 
 
@@ -85,16 +85,15 @@ end
 
 %% Compute target conditional coveriance at periods of interest 
 if useVar == 0
-    TgtCovs = zeros(length(optInputs.TgtPer));
+    TgtCovs = zeros(length(knownPer));
 else
-    TgtCovs = corrMatrix(indPer,indPer).*covMatrix(indPer,indPer);
-    
+    TgtCovs = corrMatrix.*covMatrix;
+
     % for conditional selection only, ensure that variances will be zero at
     % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
     if optInputs.cond == 1
-        TgtCovs(optInputs.indT1,:) = repmat(1e-17,1,length(optInputs.TgtPer));
-        TgtCovs(:,optInputs.indT1) = repmat(1e-17,length(optInputs.TgtPer),1);
-    end    
-
+        TgtCovs(indPer(optInputs.indT1),:) = repmat(1e-17,1,length(sa));
+        TgtCovs(:,indPer(optInputs.indT1)) = repmat(1e-17,length(sa),1);
+    end
 end
 

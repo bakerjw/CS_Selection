@@ -105,13 +105,13 @@
 %% User inputs begin here
 
 % Ground motion database and type of selection 
-databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
+databaseFile         = 'BBP_SDSU_meta_data'; % filename of the target database
 optInputs.cond       = 1;
 arb                  = 2; 
 RotD                 = 50; 
 
 % Number of ground motions and spectral periods of interest
-optInputs.nGM        = 20;      % number of ground motions to be selected 
+optInputs.nGM        = 10;      % number of ground motions to be selected 
 optInputs.T1         = 0.5;     % Period at which spectra should be scaled and matched 
 Tmin                 = 0.1;     % smallest spectral period of interest
 Tmax                 = 10;      % largest spectral period of interest
@@ -120,18 +120,18 @@ optInputs.TgtPer     = logspace(log10(Tmin),log10(Tmax),30); % Periods at which 
 % other parameters to scale motions and evaluate selections 
 optInputs.isScaled   = 1;       
 optInputs.maxScale   = 4;       
-optInputs.tol        = 15; 
-optInputs.optType    = 0; 
+optInputs.tol        = 0; 
+optInputs.optType    = 1; 
 optInputs.penalty    = 0;
 optInputs.weights    = [1.0 2.0];
 optInputs.nLoop      = 2;
 
 % User inputs to specify the target earthquake scenario
-M_bar       = 7.5;      % earthquake magnitude
-R_bar       = 10;       % distance corresponding to the target scenario earthquake
+M_bar       = 7.52;      % earthquake magnitude
+R_bar       = 11.6;       % distance corresponding to the target scenario earthquake
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
-eps_bar     = 1.5;      % epsilon value (used only for conditional selection)
-Vs30        = 260;      % average shear wave velocity in the top 30m of the soil (m/s)
+eps_bar     = 1.9524;      % epsilon value (used only for conditional selection)
+Vs30        = 259;      % average shear wave velocity in the top 30m of the soil (m/s)
 z1          = 999;      % basin depth (km); depth from ground surface to the 1km/s shear-wave horizon,
                         % =999 if unknown
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
@@ -146,9 +146,9 @@ Fault_Type  = 1;        % =0 for unspecified fault
                         % =3 for reverse fault
                         
 % Ground motion properties to require when selecting from the database. 
-allowedVs30          = [0 Inf];     % upper and lower bound of allowable Vs30 values 
-allowedMag           = [4 9];       % upper and lower bound of allowable magnitude values
-allowedD             = [0 100];     % upper and lower bound of allowable distance values
+allowedVs30          = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
+allowedMag           = [-Inf Inf];       % upper and lower bound of allowable magnitude values
+allowedD             = [-Inf Inf];     % upper and lower bound of allowable distance values
 
 % Miscellaneous other inputs
 showPlots            = 1;   % =1 to plot results, =0 to suppress plots
@@ -174,6 +174,7 @@ if arb == 1
     soil_Vs30   = [soil_Vs30; soil_Vs30]; 
     magnitude   = [magnitude; magnitude]; 
     closest_D   = [closest_D; closest_D]; 
+    dirLocation = [dirLocation; dirLocation];
 else % two-component selection
     Filename    = Filename_1;
     if RotD == 50 && exist('Sa_RotD50')
@@ -235,13 +236,16 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 % Instead of computing the targets with the function below, the following
 % variables can be defined as long as they are the appropriate sizes
-% Tgts.meanReq = []; % lengh of TgtPer
-% Tgts.covReq = [];  % size [length(TgtPer) length(TgtPer)]
-% corrReq = [];      % size [length(knownPer) length(knownPer)]
+% knownMeanReq = []; % length of knownPer
+% knownCovReq = [];  % size [length(knownPer) length(knownPer)]
 
-% Compute the target mean response spectrum and target covariance matrix
-[corrReq, Tgts.meanReq, Tgts.covReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
+% Compute the target mean response spectrum at target periods and target
+% covariance matrix at all periods
+[knownMeanReq, knownCovReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
                                                 M_bar, Rjb, Fault_Type, region, z1, Vs30);
+% Define covariance matrix at target periods  
+Tgts.meanReq = knownMeanReq(indPer); 
+Tgts.covReq  = knownCovReq(indPer,indPer);
 
 %% Simulate response spectra matching the above targets, for use in record selection
 
@@ -348,7 +352,7 @@ fin = fopen(outputFile,'w');
 % print header information
 fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});
 if arb == 1
-    fprintf(fin,'%s \t %s \t %s \t %s \n','Record Number','Scale Factor','File Name','URL');
+    fprintf(fin,'%s \t %s \t %s \t %s \t %s \n','Record Number','Record Sequence Number','Scale Factor','File Name','URL');
 elseif arb == 2
     fprintf(fin,'%s \t %s \t %s \t %s \t %s \t %s \t %s \n','Record Number','Record Sequence Number','Scale Factor','File Name Dir. 1','File Name Dir. 2', 'URL 1', 'URL 2');
 end
@@ -357,10 +361,8 @@ end
 for i = 1 : length(finalRecords)
     rec = allowedIndex(finalRecords(i));
     if arb == 1 
-%         fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),Filename{rec},[dirLocation{rec} Filename{rec}]); % Print relevant outputs
-        fprintf(fin,'%d \t %6.2f \t %s \t %s \n',i,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
     else 
-%         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),Filename_1{rec},Filename_2{rec},[dirLocation{rec} Filename_1{rec}],[dirLocation{rec} Filename_2{rec}]);
         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename_1{rec}),char(Filename_2{rec}),[char(dirLocation{rec}) char(Filename_1{rec})],[char(dirLocation{rec}) char(Filename_2{rec})]);
     end
 end

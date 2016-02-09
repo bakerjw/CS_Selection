@@ -82,6 +82,10 @@
         end
     end
     
+    % Calculate target correlations from covariances
+    knownStdevs = sqrt(diag(knownCovReq));
+    corrReq = knownCovReq./(knownStdevs*knownStdevs');
+    
     % Contours of correlations from selected spectra
     figure
     contour(knownPer(knownPer<=10), knownPer(knownPer<=10), corrReqSamp);
@@ -97,7 +101,7 @@
     
     % Contours of target correlations
     figure
-    contour(knownPer(knownPer<=10), knownPer(knownPer<=10), corrReq);
+    contour(knownPer(knownPer<=10), knownPer(knownPer<=10), corrReq(knownPer<=10, knownPer<=10));
     set(gca,'yscale','log','xscale','log');
     axis square;
     xlabel('T_1 (s)');
@@ -107,7 +111,7 @@
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
     % Difference between target and sample correlations
-    diffCorr = abs(corrReqSamp-corrReq);
+    diffCorr = abs(corrReqSamp-corrReq(knownPer<=10,knownPer<=10));
     figure
     contour(knownPer(knownPer<=10),knownPer(knownPer<=10),diffCorr);
     set(gca, 'yscale', 'log','xscale','log');
@@ -116,7 +120,7 @@
     xlabel('T_1 (s)');
     ylabel('T_2 (s)');
     colorbar('YLim',[-1 1]);
-    caxis([0 0.5]);
+    caxis([0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
 
