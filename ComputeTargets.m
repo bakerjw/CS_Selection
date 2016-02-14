@@ -36,8 +36,7 @@ if RotD == 100 && arb == 2
    sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
-% (Log) Response Spectrum Mean: meanReq
-% Define indicies at which spectra will be scaled
+% (Log) Response Spectrum Mean: TgtMean
 if optInputs.cond == 1   
     % compute correlations and the conditional mean spectrum
     rho = zeros(1,length(sa));  
@@ -52,8 +51,7 @@ end
 
 
 %% Compute covariances and correlations at all periods 
-covMatrix = zeros(length(sa));
-corrMatrix = zeros(length(sa));
+TgtCovs = zeros(length(sa));
 for i=1:length(sa)
     for j=1:length(sa)
         % Periods
@@ -71,13 +69,10 @@ for i=1:length(sa)
             sigma11 = [var1 sigmaCorr;sigmaCorr var2];
             sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
-            % Correlations
-            covMatrix(i,j) = sqrt(sigmaCond(1,1)*sigmaCond(2,2));
-            corrMatrix(i,j) = sigmaCond(1,2)/covMatrix(i,j);
+            
+            TgtCovs(i,j) = sigmaCond(1,2);
         elseif optInputs.cond == 0
-            % Correlations
-            covMatrix(i,j) = sqrt(var1*var2);
-            corrMatrix(i,j) = baker_jayaram_correlation(Ti, Tj);
+            TgtCovs(i,j) = baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);
         end
 
     end
@@ -87,13 +82,11 @@ end
 if useVar == 0
     TgtCovs = zeros(length(knownPer));
 else
-    TgtCovs = corrMatrix.*covMatrix;
-
     % for conditional selection only, ensure that variances will be zero at
     % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
     if optInputs.cond == 1
-        TgtCovs(indPer(optInputs.indT1),:) = repmat(1e-17,1,length(sa));
-        TgtCovs(:,indPer(optInputs.indT1)) = repmat(1e-17,length(sa),1);
+        TgtCovs(indPer(optInputs.indT1),:) = 1e-17;
+        TgtCovs(:,indPer(optInputs.indT1)) = 1e-17;
     end
 end
 
