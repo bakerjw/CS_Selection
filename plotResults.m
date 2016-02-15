@@ -11,7 +11,7 @@
     %              periods at which the target response spectrum properties
     %              are computed
     % sampleSmall: The response spectra of the selected ground motions,
-    %              defined at PerTgt
+    %              defined at TgtPer
     % meanReq    : Target mean for the (log) response spectrum
     % covReq     : Target covariance for the (log) response spectrum
 

@@ -105,9 +105,9 @@
 %% User inputs begin here
 
 % Ground motion database and type of selection 
-databaseFile         = 'BBP_SDSU_meta_data'; % filename of the target database
+databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
 optInputs.cond       = 1;
-arb                  = 2; 
+arb                  = 1; 
 RotD                 = 50; 
 
 % Number of ground motions and spectral periods of interest
@@ -236,8 +236,8 @@ assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough all
 
 % Instead of computing the targets with the function below, the following
 % variables can be defined as long as they are the appropriate sizes
-% knownMeanReq = []; % length of knownPer
-% knownCovReq = [];  % size [length(knownPer) length(knownPer)]
+% knownMeanReq = []; % (log) target mean response spectrum with length of knownPer
+% knownCovReq = [];  % target covariance matrix with size [length(knownPer) length(knownPer)]
 
 % Compute the target mean response spectrum at target periods and target
 % covariance matrix at all periods
@@ -259,7 +259,7 @@ end
 % Generate simulated response spectra with best matches to the target values
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
-    spectraSample{j} = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM));
+    spectraSample{j} = exp(mvnrnd(Tgts.meanReq,Tgts.covReq,optInputs.nGM));
     sampleMeanErr = mean(log(spectraSample{j})) - Tgts.meanReq; % how close is the mean of the spectra to the target
     sampleStdErr = std(log(spectraSample{j})) - sqrt(diag(Tgts.covReq))'; % how close is the standard dev. of the spectra to the target
     sampleSkewnessErr = skewness(log(spectraSample{j}),1); % how close is the skewness of the spectra to zero (i.e., the target)
