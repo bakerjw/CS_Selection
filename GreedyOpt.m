@@ -120,8 +120,7 @@ for k=1:optInputs.nLoop % Number of passes
                 devTotal(j) = sum(Dn);   
             end
             
-            % Scale factors for either type of optimization should not
-            % exceed the maximum
+            % Scale factor should not exceed the maximum
             if (scaleFac(j) > optInputs.maxScale)
                 devTotal(j) = 1000000;
             end

@@ -46,7 +46,7 @@
 
     % Target, initial, and finally selected medians
     figure
-    loglog(optInputs.TgtPer,Tgts.means,'k','linewidth',1)
+    loglog(optInputs.TgtPer, exp(Tgts.meanReq),'k','linewidth',1)
     hold on
     loglog(optInputs.TgtPer, origMeans,'r*--', 'linewidth',1)
     loglog(optInputs.TgtPer,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)

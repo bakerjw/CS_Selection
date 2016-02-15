@@ -67,9 +67,8 @@
 %                         spectra that have spectral acceleration values 
 %                         beyond 3 sigma at any of the periods, set a value
 %                         here. Use 0 otherwise.
-%            weights    : [Weight for error in mean, Weight for error 
-%                         in standard deviation] e.g., [1.0,1.0] (used only
-%                         in SSE optimization)
+%            weights    : [Weights for error in mean, standard deviation 
+%                         and skewness] e.g., [1.0,1.0 0.5] 
 %            nLoop      : Number of loops of optimizations to perform.
 %                         Default value = 2
 % 
@@ -123,7 +122,7 @@ optInputs.maxScale   = 4;
 optInputs.tol        = 0; 
 optInputs.optType    = 1; 
 optInputs.penalty    = 0;
-optInputs.weights    = [1.0 2.0];
+optInputs.weights    = [1.0 2.0 0.3];
 optInputs.nLoop      = 2;
 
 % User inputs to specify the target earthquake scenario
@@ -206,20 +205,19 @@ for i=1:length(optInputs.TgtPer)
     [~ , indPer(i)] = min(abs(knownPer - optInputs.TgtPer(i)));
 end
 
-% Remove any repeated values from PerTgt and redefine PerTgt as periods 
+% Remove any repeated values from TgtPer and redefine TgtPer as periods 
 % provided in databases
 indPer = unique(indPer);
 optInputs.TgtPer = knownPer(indPer);
 
-% Identify the index of T1 within PerTgt and the final number of periods in
-% PerTgt
+% Identify the index of T1 within TgtPer 
 [~, optInputs.indT1] = min(abs(optInputs.TgtPer - optInputs.T1));
 
 %% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
 recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
-recValidMag = magnitude > allowedMag(1) & magnitude < allowedMag(2);
-recValidDist = closest_D > allowedD(1) & closest_D < allowedD(2);
+recValidMag =  magnitude > allowedMag(1)  & magnitude < allowedMag(2);
+recValidDist = closest_D > allowedD(1)    & closest_D < allowedD(2);
 
 % find indicies of allowable records that will be searched
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
@@ -229,8 +227,8 @@ SaKnown = SaKnown(allowedIndex,:);
 IMs.sampleBig = log(SaKnown(:,indPer));
 optInputs.nBig = size(IMs.sampleBig,1);
 
-fprintf('Number of allowed ground motions = %i \n \n', length(allowedIndex))
-assert(length(allowedIndex) >= optInputs.nGM, 'Warning: there are not enough allowable ground motions');
+fprintf('Number of allowed ground motions = %i \n \n', optInputs.nBig)
+assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable ground motions');
 
 %% Compute target means and covariances of spectral values 
 
@@ -265,7 +263,7 @@ for j=1:nTrials
     sampleSkewnessErr = skewness(log(spectraSample{j}),1); % how close is the skewness of the spectra to zero (i.e., the target)
     devTotalSim(j) = optInputs.weights(1) * sum(sampleMeanErr.^2) + ...
                      optInputs.weights(2) * sum(sampleStdErr.^2)+ ...
-                     0.1 * sum(optInputs.weights) * sum(sampleSkewnessErr.^2); % combine the three error metrics
+                     optInputs.weights(3) * sum(sampleSkewnessErr.^2); % combine the three error metrics
 end
 [~, bestSample] = min(devTotalSim); % find the simulated spectra that best match the targets 
 simulatedSpectra = spectraSample{bestSample};
@@ -309,7 +307,6 @@ end
 
 % Compute target means and standard deviations and the means 
 % and standard deviations of the originally selected ground motions 
-Tgts.means = exp(Tgts.meanReq);
 Tgts.stdevs = sqrt(diag(Tgts.covReq))';
 origMeans = exp(mean(IMs.sampleSmall));
 origStdevs = std(IMs.sampleSmall);
@@ -317,7 +314,7 @@ origStdevs = std(IMs.sampleSmall);
 % Compute maximum percent error of selection relative to target means and
 % standard deviations (do not compute standard deviation error at T1 for
 % conditional selection)
-meanErr = max(abs(origMeans-Tgts.means)./Tgts.means)*100;
+meanErr = max(abs(origMeans-exp(Tgts.meanReq))./exp(Tgts.meanReq))*100;
 stdErr = max(abs(origStdevs(1:end ~= optInputs.indT1)-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
 
 % Display the original maximum error between the selected gm and the target
