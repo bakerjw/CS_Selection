@@ -246,6 +246,7 @@ assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable
 % function, and edit ComputeTargets lines 23-24 accordingly 
 [knownMeanReq, knownCovReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
                                                 M_bar, Rjb, Fault_Type, region, z1, Vs30);
+                                            
 % Define covariance matrix at target periods  
 Tgts.meanReq = knownMeanReq(indPer); 
 Tgts.covReq  = knownCovReq(indPer,indPer);
