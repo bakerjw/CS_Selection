@@ -20,8 +20,8 @@ function [ TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, use
 % if the GMPE arguments are not available, input the predicted sa and sigma
 % values 
 if nargin < 8
-    sa = []; % input median results from any other GMPE (of length knownPer <= 10)
-    sigma = []; % input predicted sigmas
+    sa = []; % input median results from any other GMPE (of size [length(knownPer),1])
+    sigma = []; % input predicted sigmas (of size [length(knownPer),1])
 else
     [sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
 end
@@ -80,7 +80,7 @@ end
 
 %% Compute target conditional coveriance at periods of interest 
 if useVar == 0
-    TgtCovs = zeros(length(knownPer));
+    TgtCovs = zeros(length(sa));
 else
     % for conditional selection only, ensure that variances will be zero at
     % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)

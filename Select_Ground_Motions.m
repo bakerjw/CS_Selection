@@ -167,6 +167,8 @@ load(databaseFile)
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases
 % and can be added here if desired
+% Note: These lines will need to be modified for selection from the
+% BBP_EXSIM database. See documentation for more details.
 if arb == 1
     Filename    = [Filename_1; Filename_2];
     SaKnown     = [Sa_1; Sa_2]; 
@@ -239,6 +241,9 @@ assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable
 
 % Compute the target mean response spectrum at target periods and target
 % covariance matrix at all periods
+% If using a GMPE other than BSSA_2014_nga provided with this algorithm,
+% do not input the target earthquake scenario data into the ComputeTargets 
+% function, and edit ComputeTargets lines 23-24 accordingly 
 [knownMeanReq, knownCovReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
                                                 M_bar, Rjb, Fault_Type, region, z1, Vs30);
 % Define covariance matrix at target periods  

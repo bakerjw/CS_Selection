@@ -125,7 +125,7 @@ for k=1:optInputs.nLoop % Number of passes
                 devTotal(j) = 1000000;
             end
             
-            % Should cause improvement and record should not be repeated
+            % Record should not be repeated
             if (any(optInputs.recID == j))
                 devTotal(j) = 1000000;
             end
