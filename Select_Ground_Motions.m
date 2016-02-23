@@ -106,7 +106,7 @@
 % Ground motion database and type of selection 
 databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
 optInputs.cond       = 1;
-arb                  = 2; 
+arb                  = 1; 
 RotD                 = 50; 
 
 % Number of ground motions and spectral periods of interest
@@ -167,6 +167,8 @@ load(databaseFile)
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases
 % and can be added here if desired
+% Note: These lines will need to be modified for selection from the
+% BBP_EXSIM database. See documentation for more details.
 if arb == 1
     Filename    = [Filename_1; Filename_2];
     SaKnown     = [Sa_1; Sa_2]; 
@@ -234,13 +236,17 @@ assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable
 
 % Instead of computing the targets with the function below, the following
 % variables can be defined as long as they are the appropriate sizes
-% knownMeanReq = []; % length of knownPer
-% knownCovReq = [];  % size [length(knownPer) length(knownPer)]
+% knownMeanReq = []; % (log) target mean response spectrum with length of knownPer
+% knownCovReq = [];  % target covariance matrix with size [length(knownPer) length(knownPer)]
 
 % Compute the target mean response spectrum at target periods and target
 % covariance matrix at all periods
+% If using a GMPE other than BSSA_2014_nga provided with this algorithm,
+% do not input the target earthquake scenario data into the ComputeTargets 
+% function, and edit ComputeTargets lines 23-24 accordingly 
 [knownMeanReq, knownCovReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
                                                 M_bar, Rjb, Fault_Type, region, z1, Vs30);
+                                            
 % Define covariance matrix at target periods  
 Tgts.meanReq = knownMeanReq(indPer); 
 Tgts.covReq  = knownCovReq(indPer,indPer);
@@ -257,7 +263,7 @@ end
 % Generate simulated response spectra with best matches to the target values
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
-    spectraSample{j} = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM));
+    spectraSample{j} = exp(mvnrnd(Tgts.meanReq,Tgts.covReq,optInputs.nGM));
     sampleMeanErr = mean(log(spectraSample{j})) - Tgts.meanReq; % how close is the mean of the spectra to the target
     sampleStdErr = std(log(spectraSample{j})) - sqrt(diag(Tgts.covReq))'; % how close is the standard dev. of the spectra to the target
     sampleSkewnessErr = skewness(log(spectraSample{j}),1); % how close is the skewness of the spectra to zero (i.e., the target)
