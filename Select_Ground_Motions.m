@@ -13,8 +13,7 @@
 %
 % created by Nirmal Jayaram, Ting Lin, Jack W. Baker, Official release 7 June, 2010 
 %
-% modified by Cynthia Lee and Jack Baker, Last Updated: 
-%
+% modified by Cynthia Lee and Jack Baker, last updated, 14 March, 2016
 %% OUTPUT VARIABLES
 %
 % finalRecords      : Record numbers of selected records
@@ -29,9 +28,10 @@
 
 %% Variable definitions and initial set of user inputs
 % Specify a database with a needed ground motion data. Provided databases
-% include 'NGA_W1_meta_data.mat', 'NGA_W2_meta_data.mat' and
-% 'GP_sim_meta_data.mat' Further documentation of these databases can be 
-% found at 'WorkspaceDocumentation***.txt'.
+% include 'NGA_W1_meta_data.mat', 'NGA_W2_meta_data.mat',
+% 'BBP_GP_meta_data.mat', 'BBP_SDSU_meta_data.mat',
+% and'BBP_EXSIM_meta_data.mat' Further documentation of these databases can
+% be found at 'WorkspaceDocumentation***.txt'.
 %
 % Variable definitions for loading data:
 % cond         : 0 to run unconditional selection
@@ -42,23 +42,18 @@
 %              : 100 to use SaRotD100 data
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Certain variables are stored as parts of data structures which will later
-% be incorporated in the optimization portion of the code. Required user
-% input values are indicated for the user. Some variables described below
-% are calculated within this script or other functions. The data structures
-% are as follows:
+% Certain variables are stored in data structures which are later used in
+% the optimization function. Required user input values are indicated for
+% the user. Some variables defined here are calculated within this script
+% or other functions. The data structures are as follows:
 %
-% optInputs - input values needed to run the optimization function:
-%            nBig       : The number of spectra that will be searched
+% optInputs: input values needed to run the optimization function
 %            isScaled   : The user will input 1 to allow records to be 
 %                         scaled, and input 0 otherwise 
 %            maxScale   : The maximum allowable scale factor
-%            indT1      : This is the index of T1, the conditioning period
-%            recID      : This is a vector of index values for chosen
-%                         spectra
 %            tol        : User input percent error tolerance to determine
-%                         whether or not optimization can be skipped (this
-%                         will only be used for SSE optimization)
+%                         whether or not optimization can be skipped (only
+%                         used for SSE optimization)
 %            optType    : For greedy optimization, the user will input a 0
 %                         to use the sum of squared errors approach to 
 %                         optimize the selected spectra, or a 1 to use 
@@ -68,33 +63,33 @@
 %                         beyond 3 sigma at any of the periods, set a value
 %                         here. Use 0 otherwise.
 %            weights    : [Weights for error in mean, standard deviation 
-%                         and skewness] e.g., [1.0,1.0 0.5] 
-%            nLoop      : Number of loops of optimizations to perform.
+%                         and skewness] e.g., [1.0,2.0 0.3] 
+%            nLoop      : Number of loops of optimization to perform.
 %                         Default value = 2
+%            nBig       : The number of spectra that will be searched
+%            indT1      : This is the index of T1, the conditioning period
+%            recID      : This is a vector of index values for chosen
+%                         spectra
 % 
-% Tgts      - The target values (means and covariances) being matched
-%            meanReq : Estimated target response spectrum means (vector of
-%                      spectral values, one at each period)
-%            covReq  : Matrix of response spectrum covariances
-%            means   : The meanReq vector re-formatted to be equal to
-%                      exp(meanReq) in order to plot the means 
-%                      properly on a log scale
-%            stdevs    : A vector of standard deviations at each period
+% Tgts    :  The target values (means and covariances) being matched
+%            meanReq    : Estimated target response spectrum means (vector of
+%                         logarithmic spectral values, one at each period)
+%            covReq     : Matrix of response spectrum covariances
+%            stdevs     : A vector of standard deviations at each period
 % 
-% IMs       - The intensity measure values (from SaKnown) chosen and the 
-%             values available:
-%            sampleSmall : matrix of selected response spectra 
-%            sampleBig   : The matrix of spectra that will be searched
+% IMs     :  The intensity measure values (from SaKnown) chosen and the 
+%            values available
+%            sampleSmall: matrix of selected logarithmic response spectra 
+%            sampleBig  : The matrix of logarithmic spectra that will be 
+%                          searched
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Variable definitions for more user inputs: 
+% If a database other than the provided databases is used, define the
+% following variables:
 % SaKnown   : (N*P matrix)
 %             This is a matrix of Sa values at different periods (P) for
 %             available ground-motion time histories (N).
 % knownPer  : The set of P known periods.
-%
-% If a database other than the provided databases is used, also define the
-% following variables:
 % 
 % soil_Vs30        : Soil Vs30 values corresponding to all the records
 % magnitude        : Magnitude of all the records
@@ -102,11 +97,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% User inputs begin here
-
 % Ground motion database and type of selection 
 databaseFile         = 'NGA_W2_meta_data'; % filename of the target database
 optInputs.cond       = 1;
-arb                  = 1; 
+arb                  = 2; 
 RotD                 = 50; 
 
 % Number of ground motions and spectral periods of interest
@@ -126,15 +120,15 @@ optInputs.weights    = [1.0 2.0 0.3];
 optInputs.nLoop      = 2;
 
 % User inputs to specify the target earthquake scenario
-M_bar       = 7.52;      % earthquake magnitude
-R_bar       = 11.6;       % distance corresponding to the target scenario earthquake
+M_bar       = 7.52;     % earthquake magnitude
+R_bar       = 11.6;     % distance corresponding to the target scenario earthquake
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
-eps_bar     = 1.9524;      % epsilon value (used only for conditional selection)
+eps_bar     = 1.9524;   % epsilon value (used only for conditional selection)
 Vs30        = 259;      % average shear wave velocity in the top 30m of the soil (m/s)
 z1          = 999;      % basin depth (km); depth from ground surface to the 1km/s shear-wave horizon,
                         % =999 if unknown
 useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
-region      = 0;        % =0 for global (incl. Taiwan)
+region      = 1;        % =0 for global (incl. Taiwan)
                         % =1 for California
                         % =2 for Japan
                         % =3 for China or Turkey
@@ -145,18 +139,18 @@ Fault_Type  = 1;        % =0 for unspecified fault
                         % =3 for reverse fault
                         
 % Ground motion properties to require when selecting from the database. 
-allowedVs30          = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
-allowedMag           = [-Inf Inf];       % upper and lower bound of allowable magnitude values
-allowedD             = [-Inf Inf];     % upper and lower bound of allowable distance values
+allowedVs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
+allowedMag  = [6 Inf];        % upper and lower bound of allowable magnitude values
+allowedD    = [-Inf Inf];     % upper and lower bound of allowable distance values
 
 % Miscellaneous other inputs
-showPlots            = 1;   % =1 to plot results, =0 to suppress plots
-seedValue            = 1;   % =0 for random seed in when simulating 
-                            % response spectra for initial matching, 
-                            % otherwise the specifed seedValue is used.
-nTrials              = 20;  % number of iterations of the initial spectral 
-                            % simulation step to perform
-outputFile           = 'Output_File.dat';   % File name of the output file
+showPlots   = 1;        % =1 to plot results, =0 to suppress plots
+seedValue   = 1;        % =0 for random seed in when simulating 
+                        % response spectra for initial matching, 
+                        % otherwise the specifed seedValue is used.
+nTrials     = 20;       % number of iterations of the initial spectral 
+                        % simulation step to perform
+outputFile  = 'Output_File.dat'; % File name of the output file
 
 % User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -166,9 +160,9 @@ load(databaseFile)
 
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases
-% and can be added here if desired
-% Note: These lines will need to be modified for selection from the
-% BBP_EXSIM database. See documentation for more details.
+% and can be added here if desired 
+% Note: These lines should be modified if using the BBP_EXSIM_meta_data.mat
+% database file. See documentation for more details.
 if arb == 1
     Filename    = [Filename_1; Filename_2];
     SaKnown     = [Sa_1; Sa_2]; 
@@ -191,7 +185,6 @@ else % two-component selection
 end
 
 %% Arrange available spectra in usable format and check for invalid values
-
 % Create variable for known periods
 knownPer = Periods; 
 
@@ -225,34 +218,30 @@ recValidDist = closest_D > allowedD(1)    & closest_D < allowedD(2);
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 
 % Process available spectra
-SaKnown = SaKnown(allowedIndex,:);
-IMs.sampleBig = log(SaKnown(:,indPer));
-optInputs.nBig = size(IMs.sampleBig,1);
+SaKnown = SaKnown(allowedIndex,:);       % allowed spectra defined at all periods
+IMs.sampleBig = log(SaKnown(:,indPer));  % logarithmic spectral accelerations at target periods
+optInputs.nBig = size(IMs.sampleBig,1);  % number of allowed spectra
 
 fprintf('Number of allowed ground motions = %i \n \n', optInputs.nBig)
 assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable ground motions');
 
 %% Compute target means and covariances of spectral values 
-
-% Instead of computing the targets with the function below, the following
-% variables can be defined as long as they are the appropriate sizes
+% Input the following variables and comment out ComputeTargets() for a
+% user-defined target response spectrum 
 % knownMeanReq = []; % (log) target mean response spectrum with length of knownPer
 % knownCovReq = [];  % target covariance matrix with size [length(knownPer) length(knownPer)]
 
-% Compute the target mean response spectrum at target periods and target
-% covariance matrix at all periods
-% If using a GMPE other than BSSA_2014_nga provided with this algorithm,
-% do not input the target earthquake scenario data into the ComputeTargets 
-% function, and edit ComputeTargets lines 23-24 accordingly 
+% Compute the mean response spectrum and target covariance matrix at all
+% available periods of the database
 [knownMeanReq, knownCovReq] = ComputeTargets(RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, ...
                                                 M_bar, Rjb, Fault_Type, region, z1, Vs30);
                                             
-% Define covariance matrix at target periods  
+% Define target spectrum and mean covariance matrix at target periods
+% defined above
 Tgts.meanReq = knownMeanReq(indPer); 
 Tgts.covReq  = knownCovReq(indPer,indPer);
 
 %% Simulate response spectra matching the above targets, for use in record selection
-
 % Set initial seed for simulation
 if seedValue ~= 0
     rng(seedValue); 
@@ -263,7 +252,7 @@ end
 % Generate simulated response spectra with best matches to the target values
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
-    spectraSample{j} = exp(mvnrnd(Tgts.meanReq,Tgts.covReq,optInputs.nGM));
+    spectraSample{j} = exp(lhsnorm(Tgts.meanReq,Tgts.covReq,optInputs.nGM));
     sampleMeanErr = mean(log(spectraSample{j})) - Tgts.meanReq; % how close is the mean of the spectra to the target
     sampleStdErr = std(log(spectraSample{j})) - sqrt(diag(Tgts.covReq))'; % how close is the standard dev. of the spectra to the target
     sampleSkewnessErr = skewness(log(spectraSample{j}),1); % how close is the skewness of the spectra to zero (i.e., the target)
@@ -275,7 +264,6 @@ end
 simulatedSpectra = spectraSample{bestSample};
 
 %% Find best matches to the simulated spectra from ground-motion database
-
 % Define the spectral accleration at T1 that all ground motions will be scaled to
 optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
 if optInputs.cond == 1 
@@ -314,14 +302,14 @@ end
 % Compute target means and standard deviations and the means 
 % and standard deviations of the originally selected ground motions 
 Tgts.stdevs = sqrt(diag(Tgts.covReq))';
-origMeans = exp(mean(IMs.sampleSmall));
-origStdevs = std(IMs.sampleSmall);
+origMeans = mean(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
+origStdevs= std(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
 
 % Compute maximum percent error of selection relative to target means and
 % standard deviations (do not compute standard deviation error at T1 for
 % conditional selection)
-meanErr = max(abs(origMeans-exp(Tgts.meanReq))./exp(Tgts.meanReq))*100;
-stdErr = max(abs(origStdevs(1:end ~= optInputs.indT1)-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
+meanErr = max(abs(exp(origMeans(indPer))-exp(Tgts.meanReq))./exp(Tgts.meanReq))*100;
+stdErr = max(abs(origStdevs(indPer ~= indPer(optInputs.indT1))-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
 
 % Display the original maximum error between the selected gm and the target
 fprintf('End of simulation stage \n')
@@ -329,21 +317,18 @@ fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr);
 fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr); 
 
 %% Further optimize the ground motion selection, if desired
-
 % if selected motions do not yet meet tolerances, further optimize
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
     [IMs.sampleSmall, finalRecords, finalScaleFac] = GreedyOpt(optInputs, Tgts, IMs);  
     % [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOptPar(optInputs, Tgts, IMs); % a version of the optimization function that uses parallel processing
-
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
     finalRecords = optInputs.recID;
 end
 
 %% Plot results, if desired
-
 if (showPlots)
-    plotResults;
+    PlotResults;
 end
 
 %% Output results to a text file 

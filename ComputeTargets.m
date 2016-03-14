@@ -1,30 +1,32 @@
 function [ TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
-% ComputeTargets will calculate and return the target mean spectrum, target
-% covariance matrix, and target correlation matrix for ground motion
-% selection. The index/indicies of PerTgt that will need to be scaled is
-% also returned. The predicted spectral accelerations and their
-% corresponding standard deviations can be computed using any GMPE the user
-% chooses. The function accepts the following arguments:
-%           indPer          : periods at which target means will be
-%                             calculated
+%% Calculate and return the target mean spectrum, target and covariance
+% matrix at available periods. Predicted spectral accelerations and
+% corresponding standard deviations are computed using BSSA_2014_nga but
+% can be replaced by a user-defined GMPE. 
+%           RotD            : =50 or =100
+%           arb             : =1 for single-component or =2 for two-component
 %           knownPer        : available periods from the database
-%           sa              : spectral accelerations from the GMPE
-%           sigma           : standard deviations from the GMPE
+%           indPer          : period indicies of target response spectrum
 %           useVar          : user input for calculating variance
 %           eps_bar         : user input for epsilon (conditional
 %                             selection)
 %           optInputs       : optimization user inputs 
-%% Compute target mean spectrum from results of Campbell and Bozorgnia GMPE
-
+%           M_bar           : earthquake magnitude
+%           Rjb             : closest distance to surface projection of the fault rupture (km)
+%           Fault_Type      : =0 for unspecified fault
+%                             =1 for strike-slip fault
+%                             =2 for normal fault
+%                             =3 for reverse fault
+%           region          : =0 for global (incl. Taiwan)
+%                             =1 for California 
+%                             =2 for Japan 
+%                             =3 for China or Turkey 
+%                             =4 for Italy
+%           z1              : basin depth (km); depth from ground surface to the 1km/s shear-wave horizon, =999 if unknown
+%           Vs30            : average shear wave velocity in the top 30m of the soil (m/s)
+%% Compute target mean spectrum
 % compute the median and standard deviations of RotD50 response spectrum values 
-% if the GMPE arguments are not available, input the predicted sa and sigma
-% values 
-if nargin < 8
-    sa = []; % input median results from any other GMPE (of size [length(knownPer),1])
-    sigma = []; % input predicted sigmas (of size [length(knownPer),1])
-else
-    [sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
-end
+[sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
 
 % modify spectral targets if RotD100 values were specified for
 % two-component selection, see the following document for more details:
@@ -63,18 +65,17 @@ for i=1:length(sa)
         sigma22 = varT;
         var1 = sigma(i)^2;
         var2 = sigma(j)^2;
-
+        
+        % Covariances 
         if optInputs.cond == 1 
             sigmaCorr = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2);
             sigma11 = [var1 sigmaCorr;sigmaCorr var2];
             sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
-            
             TgtCovs(i,j) = sigmaCond(1,2);
         elseif optInputs.cond == 0
             TgtCovs(i,j) = baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);
         end
-
     end
 end
 
