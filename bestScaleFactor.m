@@ -20,7 +20,7 @@ for i = 1:size(sampleBig,1)
         % Compute deviations from target
         avg = sum(sampleSmallNew)./newGM;
         devMean = avg - meanReq;
-        devSig = sqrt((1/(nGM))*sum((sampleSmallNew-repmat(avg,newGM,1)).^2))-sigma;
+        devSig = sqrt((1/(newGM-1))*sum((sampleSmallNew-repmat(avg,newGM,1)).^2))-sigma;
         devTotal(j) = weights(1) * sum(devMean.^2) + weights(2) * sum(devSig.^2);
         
     end

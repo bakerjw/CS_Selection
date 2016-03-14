@@ -1,5 +1,4 @@
 %% Produce a number of plots of target and selected response spectra 
-
     % Variables used here
     
     % SaKnown    : As before, it contains the response spectra of all the
@@ -14,20 +13,19 @@
     %              defined at TgtPer
     % meanReq    : Target mean for the (log) response spectrum
     % covReq     : Target covariance for the (log) response spectrum
-
     
     % Plot simulated response spectra  
     figure
     loglog(optInputs.TgtPer, exp(Tgts.meanReq), '-r', 'linewidth', 3)
     hold on
     loglog(optInputs.TgtPer, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-    loglog(optInputs.TgtPer, simulatedSpectra','k');
+    loglog(optInputs.TgtPer, simulatedSpectra, 'k');
     loglog(optInputs.TgtPer, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
     axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
     xlabel('T (s)')
     ylabel('S_a (g)')
-    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of simulated ground motions')
-    title('Response spectra of simulated ground motions')
+    legend('Median response spectrum','2.5 and 97.5 percentile response spectra','Response spectra of simulated ground motion spectra')
+    title('Response spectra of simulated ground motion spectra')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
     % Plot selected response spectra
@@ -48,12 +46,12 @@
     figure
     loglog(optInputs.TgtPer, exp(Tgts.meanReq),'k','linewidth',1)
     hold on
-    loglog(optInputs.TgtPer, origMeans,'r*--', 'linewidth',1)
-    loglog(optInputs.TgtPer,exp(mean(IMs.sampleSmall)),'b--','linewidth',1)
+    loglog(knownPer, exp(origMeans),'r*--', 'linewidth',1)
+    loglog(knownPer,exp(mean(log(SaKnown(finalRecords,:).*repmat(finalScaleFac,1,size(SaKnown,2))))),'b--','linewidth',1)
     axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
     xlabel('T (s)');
     ylabel('Median S_a (g)');
-    legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a', 'exp(Mean of selected lnS_a)');
+    legend('exp(Target mean lnS_a)','exp(Mean of originally selected lnS_a)', 'exp(Mean of selected lnS_a)');
     title('Target and sample exponential logarithmic means (i.e., medians)')
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     
@@ -61,8 +59,8 @@
     figure
     semilogx(optInputs.TgtPer,Tgts.stdevs,'k','linewidth',1)
     hold on
-    semilogx(optInputs.TgtPer, origStdevs,'r*--','linewidth',1)
-    semilogx(optInputs.TgtPer,std(IMs.sampleSmall),'b--','linewidth',1)
+    semilogx(knownPer, origStdevs,'r*--','linewidth',1)
+    semilogx(knownPer,std(log(SaKnown(finalRecords,:).*repmat(finalScaleFac,1,size(SaKnown,2)))),'b--','linewidth',1)
     axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 0 1])
     xlabel('T (s)');
     ylabel('Standard deviation of lnS_a');
@@ -119,7 +117,7 @@
     title('Difference in the correlation (sample-target)');
     xlabel('T_1 (s)');
     ylabel('T_2 (s)');
-    colorbar('YLim',[-1 1]);
+    colorbar('YLim',[0 1]);
     caxis([0 1]);
     set(findall(gcf,'-property','FontSize'),'FontSize',18)
     

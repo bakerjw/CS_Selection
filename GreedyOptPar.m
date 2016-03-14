@@ -1,5 +1,6 @@
 function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOptPar( optInputs, Tgts, IMs )
-% Parallelized greedy optimization
+% Parallelized greedy optimization, for variable definitions, see
+% GreedyOpt(optInputs, Tgts, IMs)
 
 sampleSmall = IMs.sampleSmall;
 
