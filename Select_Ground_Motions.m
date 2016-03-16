@@ -328,7 +328,7 @@ end
 
 %% Plot results, if desired
 if (showPlots)
-    PlotResults;
+    plotResults;
 end
 
 %% Output results to a text file 
