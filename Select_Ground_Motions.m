@@ -124,6 +124,9 @@ M_bar       = 7.52;     % earthquake magnitude
 R_bar       = 11.6;     % distance corresponding to the target scenario earthquake
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
 eps_bar     = 1.9524;   % epsilon value (used only for conditional selection)
+                        % BackCalcEpsilon is a supplementary script that
+                        % will back-calculate epsilon values based on M, R,
+                        % and Sa inputs from USGS deaggregations
 Vs30        = 259;      % average shear wave velocity in the top 30m of the soil (m/s)
 z1          = 999;      % basin depth (km); depth from ground surface to the 1km/s shear-wave horizon,
                         % =999 if unknown
