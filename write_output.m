@@ -16,9 +16,9 @@ end
 % print record data
 for i = 1 : length(rec)
     if size(Filename,2) == 1 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \n',i,rec(i),finalScaleFac(i),char(Filename{rec(i)}),[char(dirLocation{rec(i)}) char(Filename{rec(i)})]); % Print relevant outputs
     else 
-        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename{rec,1}),char(Filename{rec,2}),[char(dirLocation{rec}) char(Filename{rec,2})],[char(dirLocation{rec}) char(Filename{rec,2})]);
+        fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec(i),finalScaleFac(i),char(Filename{rec(i),1}),char(Filename{rec(i),2}),[char(dirLocation{rec(i)}) char(Filename{rec(i),2})],[char(dirLocation{rec(i)}) char(Filename{rec(i),2})]);
     end
 end
 

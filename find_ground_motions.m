@@ -1,9 +1,7 @@
-function [ IMs, finalScaleFac, optInputs ] = find_ground_motions( optInputs, Tgts, simulatedSpectra, IMs )
+function [ IMs ] = find_ground_motions( optInputs, simulatedSpectra, IMs )
 % Find best matches to the simulated spectra from ground-motion database
 
 
-% Define the spectral accleration at T1 that all ground motions will be scaled to
-optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
 if optInputs.cond == 1 
     scaleFacIndex = optInputs.indT1;
 else
@@ -11,9 +9,9 @@ else
 end
 
 % Initialize vectors
-optInputs.recID = zeros(optInputs.nGM,1);
+IMs.recID = zeros(optInputs.nGM,1);
 IMs.sampleSmall = [];
-finalScaleFac = ones(optInputs.nGM,1);
+IMs.scaleFac = ones(optInputs.nGM,1);
 
 % Find database spectra most similar to each simulated spectrum
 for i = 1:optInputs.nGM % for each simulated spectrum
@@ -27,14 +25,14 @@ for i = 1:optInputs.nGM % for each simulated spectrum
         end
         err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(simulatedSpectra(i,:))).^2);
     end
-    err(optInputs.recID(1:i-1)) = 1000000; % exclude previously-selected ground motions 
+    err(IMs.recID(1:i-1)) = 1000000; % exclude previously-selected ground motions 
     err(scaleFac > optInputs.maxScale) = 1000000; % exclude ground motions requiring too large of a scale factor
    
     % find minimum-error ground motion    
-    [tmp, optInputs.recID(i)] = min(err);
+    [tmp, IMs.recID(i)] = min(err);
     assert(tmp < 1000000, 'Warning: problem with simulated spectrum. No good matches found');
-    finalScaleFac(i) = scaleFac(optInputs.recID(i)); % store scale factor
-    IMs.sampleSmall = [IMs.sampleSmall; log(exp(IMs.sampleBig(optInputs.recID(i),:))*scaleFac(optInputs.recID(i)))]; % store scaled log spectrum
+    IMs.scaleFac(i) = scaleFac(IMs.recID(i)); % store scale factor
+    IMs.sampleSmall = [IMs.sampleSmall; log(exp(IMs.sampleBig(IMs.recID(i),:))*scaleFac(IMs.recID(i)))]; % store scaled log spectrum
 end
 
 

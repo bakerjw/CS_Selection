@@ -1,7 +1,8 @@
-function [ sampleSmall, finalRecords, finalScaleFac ] = GreedyOpt( optInputs, Tgts, IMs )
+function [ IMs ] = optimize_ground_motions( optInputs, Tgts, IMs )
 % This function will perform a greedy optimization on a set of ground
 % motions using the sum of squared errors approach to check the set of
 % selected ground motions against target means and variances
+%
 % optInputs: input values needed to run the optimization function
 %            isScaled   : The user will input 1 to allow records to be 
 %                         scaled, and input 0 otherwise 
@@ -59,14 +60,14 @@ end
 % Initialize scale factor vector for each iteration and a scale factor
 % vector for the final selected records 
 scaleFac = ones(optInputs.nBig,1);
-finalScaleFac = ones(optInputs.nGM,1);
+IMs.scaleFac = ones(optInputs.nGM,1);
 
 for k=1:optInputs.nLoop % Number of passes
     for i=1:optInputs.nGM % Selects nGM ground motions
         display([num2str(round(((k-1)*optInputs.nGM + i-1)/(optInputs.nLoop*optInputs.nGM)*100)) '% done']);
         devTotal = zeros(optInputs.nBig,1); % initialize measure of deviation for each selected ground motion
         sampleSmall(i,:) = []; % remove initially selected record to be replaced
-        optInputs.recID(i,:) = []; 
+        IMs.recID(i,:) = []; 
         
         if optInputs.isScaled == 1
             if optInputs.cond == 1
@@ -76,12 +77,10 @@ for k=1:optInputs.nLoop % Number of passes
             end
         end
         
-        % Try to add a new spectra to the subset list
+        % Try to add a new spectrum to the subset list
         for j = 1:optInputs.nBig
             sampleSmall = [sampleSmall;IMs.sampleBig(j,:)+log(scaleFac(j))];
-            % Calculate the appropriate measure of deviation and store in
-            % devTotal (the KS-test statistic or the combination of mean
-            % and sigma deviations)
+            % Calculate the candidate's deviation and store in devTotal 
             if optInputs.optType == 0
                 if optInputs.cond == 1 || (optInputs.cond == 0 && optInputs.isScaled == 0)
                     % Compute deviations from target
@@ -109,7 +108,7 @@ for k=1:optInputs.nLoop % Number of passes
             end
             
             % Record should not be repeated
-            if (any(optInputs.recID == j))
+            if (any(IMs.recID == j))
                 devTotal(j) = 1000000;
             end
             sampleSmall = sampleSmall(1:end-1,:);
@@ -118,12 +117,12 @@ for k=1:optInputs.nLoop % Number of passes
         [~ , minID] = min(devTotal);
         % Add new element in the right slot
         if optInputs.isScaled == 1
-            finalScaleFac(i) = scaleFac(minID);
+            IMs.scaleFac(i) = scaleFac(minID);
         else
-            finalScaleFac(i) = 1;
+            IMs.scaleFac(i) = 1;
         end
         sampleSmall = [sampleSmall(1:i-1,:);IMs.sampleBig(minID,:)+log(scaleFac(minID));sampleSmall(i:end,:)];
-        optInputs.recID = [optInputs.recID(1:i-1);minID;optInputs.recID(i:end)];
+        IMs.recID = [IMs.recID(1:i-1);minID;IMs.recID(i:end)];
     end
     
     % Can the optimization be stopped after this loop based on the user
@@ -150,8 +149,9 @@ end
 
 display('100% done');
 
-% Output information
-finalRecords = optInputs.recID;
+% Save final selection for output
+IMs.sampleSmall = sampleSmall;
+
 
 end
 

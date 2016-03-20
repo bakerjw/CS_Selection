@@ -91,7 +91,7 @@ arb                  = 2;
 RotD                 = 50; 
 
 % Number of ground motions and spectral periods of interest
-optInputs.nGM        = 10;      % number of ground motions to be selected 
+optInputs.nGM        = 30;      % number of ground motions to be selected 
 optInputs.T1         = 0.5;     % Period at which spectra should be scaled and matched 
 Tmin                 = 0.1;     % smallest spectral period of interest
 Tmax                 = 10;      % largest spectral period of interest
@@ -107,10 +107,10 @@ optInputs.weights    = [1.0 2.0 0.3];
 optInputs.nLoop      = 2;
 
 % User inputs to specify the target earthquake scenario
-M_bar       = 7.52;     % earthquake magnitude
-R_bar       = 11.6;     % distance corresponding to the target scenario earthquake
+M_bar       = 6.5;      % earthquake magnitude
+R_bar       = 11;       % distance corresponding to the target scenario earthquake
 Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
-eps_bar     = 1.9524;   % epsilon value (used only for conditional selection)
+eps_bar     = 1.9;      % epsilon value (used only for conditional selection)
                         % BackCalcEpsilon is a supplementary script that
                         % will back-calculate epsilon values based on M, R,
                         % and Sa inputs from USGS deaggregations
@@ -130,7 +130,7 @@ Fault_Type  = 1;        % =0 for unspecified fault
                         
 % Ground motion properties to require when selecting from the database. 
 allowedVs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
-allowedMag  = [6 6.3];        % upper and lower bound of allowable magnitude values
+allowedMag  = [6.3 6.7];        % upper and lower bound of allowable magnitude values
 allowedD    = [-Inf Inf];     % upper and lower bound of allowable distance values
 
 % Miscellaneous other inputs
@@ -168,56 +168,25 @@ Tgts.meanReq = knownMeanReq(indPer);
 Tgts.covReq  = knownCovReq(indPer,indPer);
 Tgts.stdevs  = sqrt(diag(Tgts.covReq))';
 
+% Define the spectral accleration at T1 that all ground motions will be scaled to
+optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
+
 %% Simulate response spectra matching the computed targets
 simulatedSpectra = simulate_spectra( seedValue, nTrials, Tgts, optInputs );
 
 %% Find best matches to the simulated spectra from ground-motion database
-[ IMs, finalScaleFac, optInputs ] = find_ground_motions( optInputs, Tgts, simulatedSpectra, IMs );
+IMs = find_ground_motions( optInputs, simulatedSpectra, IMs );
 
-% Define the spectral accleration at T1 that all ground motions will be scaled to
-% optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
-% if optInputs.cond == 1 
-%     scaleFacIndex = optInputs.indT1;
-% else
-%     scaleFacIndex = (1:length(optInputs.TgtPer))';
-% end
-% 
-% % Initialize vectors
-% optInputs.recID = zeros(optInputs.nGM,1);
-% IMs.sampleSmall = [];
-% finalScaleFac = ones(optInputs.nGM,1);
-% 
-% % Find database spectra most similar to each simulated spectrum
-% for i = 1:optInputs.nGM % for each simulated spectrum
-%     err = zeros(optInputs.nBig,1); % initialize error matrix
-%     scaleFac = ones(optInputs.nBig,1); % initialize scale factors to 1 (these are never changed if no scaling is allowed)
-%     
-%     % compute scale factors and errors for each candidate ground motion
-%     for j=1:optInputs.nBig
-%         if optInputs.isScaled % if scaling is allowed, compute scale factor (otherwise it is already defined as equal to 1)
-%             scaleFac(j) = sum(exp(IMs.sampleBig(j,scaleFacIndex)).*simulatedSpectra(i,scaleFacIndex))/sum(exp(IMs.sampleBig(j,scaleFacIndex)).^2);
-%         end
-%         err(j) = sum((log(exp(IMs.sampleBig(j,:))*scaleFac(j)) - log(simulatedSpectra(i,:))).^2);
-%     end
-%     err(optInputs.recID(1:i-1)) = 1000000; % exclude previously-selected ground motions 
-%     err(scaleFac > optInputs.maxScale) = 1000000; % exclude ground motions requiring too large of a scale factor
-%    
-%     % find minimum-error ground motion    
-%     [tmp, optInputs.recID(i)] = min(err);
-%     assert(tmp < 1000000, 'Warning: problem with simulated spectrum. No good matches found');
-%     finalScaleFac(i) = scaleFac(optInputs.recID(i)); % store scale factor
-%     IMs.sampleSmall = [IMs.sampleSmall; log(exp(IMs.sampleBig(optInputs.recID(i),:))*scaleFac(optInputs.recID(i)))]; % store scaled log spectrum
-% end
-% 
 % Compute means and standard deviations of the originally selected ground motions 
-origMeans = mean(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
-origStdevs= std(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
+IMs.stageOneScaleFac =  IMs.scaleFac;
+IMs.stageOneMeans = mean(log(SaKnown(IMs.recID,:).*repmat(stageOneScaleFac,1,size(SaKnown,2))));
+IMs.stageOneStdevs= std(log(SaKnown(IMs.recID,:).*repmat(stageOneScaleFac,1,size(SaKnown,2))));
 
 % Compute maximum percent error of selection relative to target means and
 % standard deviations (do not compute standard deviation error at T1 for
 % conditional selection)
-meanErr = max(abs(exp(origMeans(indPer))-exp(Tgts.meanReq))./exp(Tgts.meanReq))*100;
-stdErr = max(abs(origStdevs(indPer ~= indPer(optInputs.indT1))-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
+meanErr = max(abs(exp(stageOneMeans(indPer))-exp(Tgts.meanReq))./exp(Tgts.meanReq))*100;
+stdErr = max(abs(stageOneStdevs(indPer ~= indPer(optInputs.indT1))-Tgts.stdevs(1:end ~= optInputs.indT1))./Tgts.stdevs(1:end ~= optInputs.indT1))*100;
 
 % Display the original maximum error between the selected gm and the target
 fprintf('End of simulation stage \n')
@@ -225,45 +194,20 @@ fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr);
 fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr); 
 
 %% Further optimize the ground motion selection, if desired
-% if selected motions do not yet meet tolerances, further optimize
+
 if meanErr > optInputs.tol || stdErr > optInputs.tol 
-    [IMs.sampleSmall, finalRecords, finalScaleFac] = GreedyOpt(optInputs, Tgts, IMs);  
-    % [IMs.sampleSmall, finalRecords, finalScaleFactors] = GreedyOptPar(optInputs, Tgts, IMs); % a version of the optimization function that uses parallel processing
+    IMs = optimize_ground_motions(optInputs, Tgts, IMs);  
+    % IMs = optimize_ground_motions_par(optInputs, Tgts, IMs); % a version of the optimization function that uses parallel processing
 else % otherwise, skip greedy optimization
     display('Greedy optimization was skipped based on user input tolerance.');
-    finalRecords = optInputs.recID;
 end
 
 %% Plot results, if desired
 if (showPlots)
-    plotResults;
+    plot_results( optInputs, Tgts, IMs, simulatedSpectra, SaKnown, knownPer, knownCovReq )
 end
-
+ 
 %% Output results to a text file 
-rec = allowedIndex(finalRecords); % selected motions, as indixed in the original database
+rec = allowedIndex(IMs.recID); % selected motions, as indixed in the original database
 
 write_output( rec, finalScaleFac, outputFile, getTimeSeries, Filename, dirLocation)
-% % Produce a tab-delimited file with selected ground motions and scale factors. 
-% % For instructions on downloading the time histories, see the documentation
-% % files for each database. 
-% 
-% fin = fopen(outputFile,'w');
-% % print header information
-% fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});
-% if arb == 1
-%     fprintf(fin,'%s \t %s \t %s \t %s \t %s \n','Record Number','Record Sequence Number','Scale Factor','File Name','URL');
-% elseif arb == 2
-%     fprintf(fin,'%s \t %s \t %s \t %s \t %s \t %s \t %s \n','Record Number','Record Sequence Number','Scale Factor','File Name Dir. 1','File Name Dir. 2', 'URL 1', 'URL 2');
-% end
-% 
-% % print record data
-% for i = 1 : length(finalRecords)
-%     rec = allowedIndex(finalRecords(i));
-%     if arb == 1 
-%         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename{rec}),[char(dirLocation{rec}) char(Filename{rec})]); % Print relevant outputs
-%     else 
-%         fprintf(fin,'%d \t %d \t %6.2f \t %s \t %s \t %s \t %s \n',i,rec,finalScaleFac(i),char(Filename{rec,1}),char(Filename{rec,2}),[char(dirLocation{rec}) char(Filename{rec,2})],[char(dirLocation{rec}) char(Filename{rec,2})]);
-%     end
-% end
-% 
-% fclose(fin);

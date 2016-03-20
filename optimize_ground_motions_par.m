@@ -1,6 +1,6 @@
-function [ sampleSmall, finalRecords, finalScaleFactors ] = GreedyOptPar( optInputs, Tgts, IMs )
+function [ IMs ] = optimize_ground_motions_par( optInputs, Tgts, IMs )
 % Parallelized greedy optimization, for variable definitions, see
-% GreedyOpt(optInputs, Tgts, IMs)
+% optimize_ground_motions(optInputs, Tgts, IMs)
 
 sampleSmall = IMs.sampleSmall;
 
@@ -32,7 +32,7 @@ for k=1:optInputs.nLoop % Number of passes
         
         devTotal = zeros(optInputs.nBig,1);
         sampleSmall(i,:) = [];
-        optInputs.recID(i,:) = [];
+        IMs.recID(i,:) = [];
         
         if optInputs.isScaled == 1
             if optInputs.cond == 1
@@ -50,12 +50,12 @@ for k=1:optInputs.nLoop % Number of passes
         [minDevFinal, minID] = min(devTotal);
         % Add new element in the right slot
         if optInputs.isScaled == 1
-            finalScaleFac(i) = scaleFac(minID);
+            IMs.scaleFac(i) = scaleFac(minID);
         else
-            finalScaleFac(i) = 1;
+            IMs.scaleFac(i) = 1;
         end
         sampleSmall = [sampleSmall(1:i-1,:);IMs.sampleBig(minID,:)+log(scaleFac(minID));sampleSmall(i:end,:)];
-        optInputs.recID = [optInputs.recID(1:i-1);minID;optInputs.recID(i:end)];
+        IMs.recID = [IMs.recID(1:i-1);minID;IMs.recID(i:end)];
         
     end
     
@@ -84,9 +84,9 @@ end
 
 display('100% done');
 
-% Output information
-finalRecords = optInputs.recID;
-finalScaleFactors = finalScaleFac';
+% Save final selection for output
+IMs.sampleSmall = sampleSmall;
+
 
 delete(parobj);
 end
@@ -144,7 +144,7 @@ isScaled = optInputs.isScaled;
 weights = optInputs.weights;
 penalty = optInputs.penalty;
 maxScale = optInputs.maxScale;
-recID = optInputs.recID;
+recID = IMs.recID;
 
 
 
