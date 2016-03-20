@@ -55,8 +55,8 @@ loglog(knownPer,exp(mean(log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(Sa
 axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
 xlabel('T (s)');
 ylabel('Median S_a (g)');
-legend('Target', 'Stage 1 selection', 'Stage 2 selection');
-title('Target and sample exponential logarithmic means (i.e., medians)')
+legend('Target', 'Stage 1 selection', 'Final selection');
+title('Median Sa (i.e., exp(log mean Sa))')
 set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Target, initial, and finally selected standard deviations
@@ -69,33 +69,22 @@ axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 0 1])
 xlabel('T (s)');
 ylabel('Standard deviation of lnS_a');
 legend('Target', 'Stage 1 selection','Final selection');
-title('Target and sample logarithmic standard deviations')
+title('Logarithmic Sa standard deviations')
 set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 
 % Compute sample correlations from selected spectra
-sampleUse = log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2)));
-sampleUse = [sampleUse(:,knownPer<optInputs.T1) interp1(knownPer,sampleUse',optInputs.T1)' sampleUse(:,knownPer>optInputs.T1 & knownPer<=10)];
+selectedSa = log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2)));
+selectedSa = [selectedSa(:,knownPer<optInputs.T1) interp1(knownPer,selectedSa',optInputs.T1)' selectedSa(:,knownPer>optInputs.T1 & knownPer<=10)];
+selectedCorr = corrcoef(selectedSa);
 
-sampleCorr = corrcoef(sampleUse);
-
-% sampleCorr = zeros(length(knownPer(knownPer<=10)));
-% for i=1:length(knownPer(knownPer<=10))
-%     for j=1:length(knownPer(knownPer<=10))
-%         corrMatrix = corrcoef((sampleUse(:,i)),(sampleUse(:,j)));
-%         sampleCorr(i,j) = corrMatrix(1,2);
-%     end
-% end
-
-
-
-% Calculate target correlations from covariances
+% Calculate target correlations using the target covariance matrix
 knownStdevs = sqrt(diag(knownCovReq));
 corrReq = knownCovReq./(knownStdevs*knownStdevs');
 
 % Contours of correlations from selected spectra
 figure
-contour(knownPer(knownPer<=10), knownPer(knownPer<=10), sampleCorr);
+contour(knownPer(knownPer<=10), knownPer(knownPer<=10), selectedCorr);
 set(gca,'yscale','log','xscale','log');
 axis square;
 xlabel('T_1');
@@ -118,12 +107,12 @@ colorbar('YLim',[0 1]);
 set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Difference between target and sample correlations
-diffCorr = abs(sampleCorr-corrReq(knownPer<=10,knownPer<=10));
+diffCorr = abs(selectedCorr-corrReq(knownPer<=10,knownPer<=10));
 figure
 contour(knownPer(knownPer<=10),knownPer(knownPer<=10),diffCorr);
 set(gca, 'yscale', 'log','xscale','log');
 axis square;
-title('Difference in the correlation (sample-target)');
+title('abs(sample correlation - target correlation)');
 xlabel('T_1 (s)');
 ylabel('T_2 (s)');
 colorbar('YLim',[0 1]);

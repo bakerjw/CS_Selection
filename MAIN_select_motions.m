@@ -69,6 +69,9 @@
 %            recID      : This is a vector of index values for chosen
 %                         spectra
 % 
+% rup     :  A structure with parameters that specify the rupture scenario
+%            for the purpose of evaluating a GMPE
+%
 % Tgts    :  The target values (means and covariances) being matched
 %            meanReq    : Estimated target response spectrum means (vector of
 %                         logarithmic spectral values, one at each period)
@@ -105,28 +108,28 @@ optInputs.optType    = 1;
 optInputs.penalty    = 0;
 optInputs.weights    = [1.0 2.0 0.3];
 optInputs.nLoop      = 2;
+useVar               = 1;   % =1 to use conditional spectrum variance, =0 to use a target variance of 0
 
-% User inputs to specify the target earthquake scenario
-M_bar       = 6.5;      % earthquake magnitude
-R_bar       = 11;       % distance corresponding to the target scenario earthquake
-Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
-eps_bar     = 1.9;      % epsilon value (used only for conditional selection)
-                        % BackCalcEpsilon is a supplementary script that
-                        % will back-calculate epsilon values based on M, R,
-                        % and Sa inputs from USGS deaggregations
-Vs30        = 259;      % average shear wave velocity in the top 30m of the soil (m/s)
-z1          = 999;      % basin depth (km); depth from ground surface to the 1km/s shear-wave horizon,
-                        % =999 if unknown
-useVar      = 1;        % =1 to use ground motion model variance, =0 to use a target variance of 0
-region      = 1;        % =0 for global (incl. Taiwan)
-                        % =1 for California
-                        % =2 for Japan
-                        % =3 for China or Turkey
-                        % =4 for Italy
-Fault_Type  = 1;        % =0 for unspecified fault
-                        % =1 for strike-slip fault
-                        % =2 for normal fault
-                        % =3 for reverse fault
+% User inputs to specify the target earthquake rupture scenario
+rup.M_bar       = 6.5;      % earthquake magnitude
+rup.R_bar       = 11;       % distance corresponding to the target scenario earthquake
+rup.Rjb         = R_bar;    % closest distance to surface projection of the fault rupture (km)
+rup.eps_bar     = 1.9;      % epsilon value (used only for conditional selection)
+                            % BackCalcEpsilon is a supplementary script that
+                            % will back-calculate epsilon values based on M, R,
+                            % and Sa inputs from USGS deaggregations
+rup.Vs30        = 259;      % average shear wave velocity in the top 30m of the soil (m/s)
+rup.z1          = 999;      % basin depth (km); depth from ground surface to the 1km/s shear-wave horizon,
+                            % =999 if unknown
+rup.region      = 1;        % =0 for global (incl. Taiwan)
+                            % =1 for California
+                            % =2 for Japan
+                            % =3 for China or Turkey
+                            % =4 for Italy
+rup.Fault_Type  = 1;        % =0 for unspecified fault
+                            % =1 for strike-slip fault
+                            % =2 for normal fault
+                            % =3 for reverse fault
                         
 % Ground motion properties to require when selecting from the database. 
 allowedVs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
@@ -160,14 +163,8 @@ assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable
 
 % Compute the mean response spectrum and target covariance matrix at all
 % available periods of the database
-[knownMeanReq, knownCovReq] = get_target_spectrum(RotD, arb, knownPer, useVar, eps_bar, optInputs, ...
-                                                M_bar, Rjb, Fault_Type, region, z1, Vs30);
+Tgts = get_target_spectrum(RotD, arb, knownPer, useVar, eps_bar, optInputs, indPer, rup);
                                                                            
-% Store target mean and covariance matrix at target periods
-Tgts.meanReq = knownMeanReq(indPer); 
-Tgts.covReq  = knownCovReq(indPer,indPer);
-Tgts.stdevs  = sqrt(diag(Tgts.covReq))';
-
 % Define the spectral accleration at T1 that all ground motions will be scaled to
 optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
 
@@ -203,7 +200,7 @@ else % otherwise, skip greedy optimization
 end
 
 %% Plot results, if desired
-if (showPlots)
+if showPlots
     plot_results( optInputs, Tgts, IMs, simulatedSpectra, SaKnown, knownPer, knownCovReq )
 end
  

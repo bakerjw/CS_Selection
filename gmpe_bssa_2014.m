@@ -1,4 +1,4 @@
-function [median, sigma, period1] = gmpeBSSA_2014(M, T, Rjb, Fault_Type, region, z1, Vs30)
+function [median, sigma, period1] = gmpe_bssa_2014(M, T, Rjb, Fault_Type, region, z1, Vs30)
 
 % coded by Yue Hua, yuehua@stanford.edu
 % updated by Jack Baker, 3/3/2014
