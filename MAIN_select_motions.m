@@ -130,7 +130,7 @@ Fault_Type  = 1;        % =0 for unspecified fault
                         
 % Ground motion properties to require when selecting from the database. 
 allowedVs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
-allowedMag  = [6 Inf];        % upper and lower bound of allowable magnitude values
+allowedMag  = [6 6.3];        % upper and lower bound of allowable magnitude values
 allowedD    = [-Inf Inf];     % upper and lower bound of allowable distance values
 
 % Miscellaneous other inputs
@@ -172,7 +172,7 @@ Tgts.stdevs  = sqrt(diag(Tgts.covReq))';
 simulatedSpectra = simulate_spectra( seedValue, nTrials, Tgts, optInputs );
 
 %% Find best matches to the simulated spectra from ground-motion database
-[ IMs, finalScaleFac ] = find_ground_motions( optInputs, Tgts, simulatedSpectra, IMs );
+[ IMs, finalScaleFac, optInputs ] = find_ground_motions( optInputs, Tgts, simulatedSpectra, IMs );
 
 % Define the spectral accleration at T1 that all ground motions will be scaled to
 % optInputs.lnSa1 = Tgts.meanReq(optInputs.indT1); 
@@ -209,9 +209,9 @@ simulatedSpectra = simulate_spectra( seedValue, nTrials, Tgts, optInputs );
 %     IMs.sampleSmall = [IMs.sampleSmall; log(exp(IMs.sampleBig(optInputs.recID(i),:))*scaleFac(optInputs.recID(i)))]; % store scaled log spectrum
 % end
 % 
-% % Compute means and standard deviations of the originally selected ground motions 
-% origMeans = mean(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
-% origStdevs= std(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
+% Compute means and standard deviations of the originally selected ground motions 
+origMeans = mean(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
+origStdevs= std(log(SaKnown(optInputs.recID,:).*repmat(finalScaleFac,1,size(SaKnown,2))));
 
 % Compute maximum percent error of selection relative to target means and
 % standard deviations (do not compute standard deviation error at T1 for
@@ -242,7 +242,7 @@ end
 %% Output results to a text file 
 rec = allowedIndex(finalRecords); % selected motions, as indixed in the original database
 
-writeOutput( rec, finalScaleFac, outputFile, getTimeSeries, Filename, dirLocation)
+write_output( rec, finalScaleFac, outputFile, getTimeSeries, Filename, dirLocation)
 % % Produce a tab-delimited file with selected ground motions and scale factors. 
 % % For instructions on downloading the time histories, see the documentation
 % % files for each database. 

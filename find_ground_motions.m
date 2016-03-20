@@ -1,4 +1,4 @@
-function [ IMs, finalScaleFac ] = find_ground_motions( optInputs, Tgts, simulatedSpectra, IMs )
+function [ IMs, finalScaleFac, optInputs ] = find_ground_motions( optInputs, Tgts, simulatedSpectra, IMs )
 % Find best matches to the simulated spectra from ground-motion database
 
 
