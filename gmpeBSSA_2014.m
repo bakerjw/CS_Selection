@@ -1,8 +1,7 @@
-% coded by Yue Hua
-%               Stanford University
-%               yuehua@stanford.edu
-%
-% modified by Jack Baker, 3/3/2014
+function [median, sigma, period1] = gmpeBSSA_2014(M, T, Rjb, Fault_Type, region, z1, Vs30)
+
+% coded by Yue Hua, yuehua@stanford.edu
+% updated by Jack Baker, 3/3/2014
 %
 % BSSA14 NGA-West2 model, based on the following citation
 %
@@ -41,7 +40,6 @@
 % sigma         = NATURAL LOG standard deviation 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [median, sigma, period1] = BSSA_2014_nga(M, T, Rjb, Fault_Type, region, z1, Vs30)
 
 period = [-1 0 0.01	0.02 0.03 0.05 0.075 0.1 0.15 0.2 0.25 0.3 0.4 0.5 0.75	1 1.5 2	3 4	5 7.5	10];
 
@@ -63,7 +61,7 @@ else                            % Compute median and sigma with user-defined per
     period1=T;
     for i=1:length(T)
         Ti = T(i);
-        if ( isempty(find(abs(period-Ti) < 0.0001))) % The user defined period requires interpolation
+        if ( isempty(find(abs(period-Ti) < 0.0001, 1))) % The user defined period requires interpolation
             T_low = max(period(period < Ti));
             T_high = min(period(period > Ti));
             ip_low  = find(period==T_low);

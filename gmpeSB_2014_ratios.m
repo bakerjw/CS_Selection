@@ -1,9 +1,9 @@
-function [ ratio, sigma, phi, tau ] = SB_2014_ratios( T )
-% Created by Jack Baker
-% August 21, 2015
+function [ ratio, sigma, phi, tau ] = gmpeSB_2014_ratios( T )
+% Created by Jack Baker, August 21, 2015
 % Updated 12 October, 2015, to include Phi and Tau values
 %
 % Compute Sa_RotD100/Sa_RotD50 ratios, from the following model:
+%
 %   Shahi, S. K., and Baker, J. W. (2014). "NGA-West2 models for ground-
 %   motion directionality." Earthquake Spectra, 30(3), 1285-1300.
 %

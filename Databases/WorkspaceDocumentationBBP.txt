@@ -20,7 +20,7 @@ Sa_1              : Spectral acceleration in direction 1
 Sa_2              : Spectral acceleration in direction 2
 Sa_RotD100        : Orientation independent two-component 					    spectral acceleration
 Sa_RotD50         : Orientation independent two-component 					    spectral acceleration
-clostest_D        : Closest distance to the ruptured area
+closest_D        : Closest distance to the ruptured area
 magnitude         : Magnitude
 soil_Vs30         : Vs30 value 
  

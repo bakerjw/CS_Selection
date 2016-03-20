@@ -46,7 +46,7 @@ Sa_star = 0.5;
 Rjb = R_bar;
 
 % Obtain median and log standard deviation predictions of Sa given the M/R scenario 
-[Sa_1, sigma_1] = BSSA_2014_nga(M_bar, T1, Rjb, Fault_Type, region, z1, Vs30);
+[Sa_1, sigma_1] = gmpeBSSA_2014(M_bar, T1, Rjb, Fault_Type, region, z1, Vs30);
 % Back-calculate epsilon value, eps_bar, corresponding to target Sa_star
 eps_bar = (log(Sa_star) - log(Sa_1))/sigma_1
  

@@ -1,8 +1,11 @@
-function [ TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
-%% Calculate and return the target mean spectrum, target and covariance
+function [ TgtMean, TgtCovs ] = get_target_spectrum( RotD, arb, knownPer, useVar, eps_bar, optInputs, M_bar, Rjb, Fault_Type, region, z1, Vs30)
+% Calculate and return the target mean spectrum, target and covariance
 % matrix at available periods. Predicted spectral accelerations and
-% corresponding standard deviations are computed using BSSA_2014_nga but
-% can be replaced by a user-defined GMPE. 
+% corresponding standard deviations are computed using gmpeBSSA_2014 but
+% can be replaced by a user-defined GMPE. If the GMPE is altered then the
+% input arguments will likely also need to be adjusted
+%
+% INPUTS
 %           RotD            : =50 or =100
 %           arb             : =1 for single-component or =2 for two-component
 %           knownPer        : available periods from the database
@@ -24,16 +27,23 @@ function [ TgtMean, TgtCovs ] = ComputeTargets( RotD, arb, indPer, knownPer, use
 %                             =4 for Italy
 %           z1              : basin depth (km); depth from ground surface to the 1km/s shear-wave horizon, =999 if unknown
 %           Vs30            : average shear wave velocity in the top 30m of the soil (m/s)
+%
+%
+% Outputs (these could be replaced by user-specified matrices if desired
+%           TgtMean         : (log) target mean response spectrum with length of knownPer
+%           TgtCovs         : target covariance matrix with size [length(knownPer) length(knownPer)]
+
+
 %% Compute target mean spectrum
 % compute the median and standard deviations of RotD50 response spectrum values 
-[sa, sigma] = BSSA_2014_nga(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
+[sa, sigma] = gmpeBSSA_2014(M_bar, knownPer(knownPer<=10), Rjb, Fault_Type, region, z1, Vs30);
 
 % modify spectral targets if RotD100 values were specified for
 % two-component selection, see the following document for more details:
 %  Shahi, S. K., and Baker, J. W. (2014). "NGA-West2 models for ground-
 %  motion directionality." Earthquake Spectra, 30(3), 1285-1300.
 if RotD == 100 && arb == 2 
-   [ rotD100Ratio, rotD100Sigma ] = SB_2014_ratios( knownPer ); 
+   [ rotD100Ratio, rotD100Sigma ] = gmpeSB_2014_ratios( knownPer ); 
    sa = sa.*rotD100Ratio; % from equation (1) of the above paper
    sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
@@ -43,7 +53,7 @@ if optInputs.cond == 1
     % compute correlations and the conditional mean spectrum
     rho = zeros(1,length(sa));  
     for i = 1:length(sa)
-        rho(i) = baker_jayaram_correlation(knownPer(i), optInputs.TgtPer(optInputs.indT1));
+        rho(i) = gmpeBJ_2008_corr(knownPer(i), optInputs.TgtPer(optInputs.indT1));
     end
     TgtMean = log(sa) + sigma.*eps_bar.*rho;
 
@@ -70,7 +80,7 @@ for i=1:length(sa)
         if optInputs.cond == 1 
             sigmaCorr = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2);
             sigma11 = [var1 sigmaCorr;sigmaCorr var2];
-            sigma12 = [baker_jayaram_correlation(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
+            sigma12 = [gmpeBJ_2008_corr(Ti, optInputs.T1)*sqrt(var1*varT);baker_jayaram_correlation(optInputs.T1, Tj)*sqrt(var2*varT)];
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
             TgtCovs(i,j) = sigmaCond(1,2);
         elseif optInputs.cond == 0
@@ -79,15 +89,8 @@ for i=1:length(sa)
     end
 end
 
-%% Compute target conditional coveriance at periods of interest 
+% over-write coveriance matrix with zeros if no variance is desired in the ground motion selection
 if useVar == 0
-    TgtCovs = zeros(length(sa));
-else
-    % for conditional selection only, ensure that variances will be zero at
-    % all values of T1 (but not exactly 0.0, for MATLAB spectra simulations)
-    if optInputs.cond == 1
-        TgtCovs(indPer(optInputs.indT1),:) = 1e-17;
-        TgtCovs(:,indPer(optInputs.indT1)) = 1e-17;
-    end
+    TgtCovs = zeros(size(TgtCovs));
 end
 

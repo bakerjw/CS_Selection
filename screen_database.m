@@ -1,4 +1,4 @@
-function [ SaKnown, indPer, knownPer, IMs, optInputs, Filename, dirLocation ] = ScreenDatabase(optInputs, databaseFile, arb, RotD, allowedVs30, allowedMag, allowedD )
+function [ SaKnown, optInputs, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex ] = screen_database(optInputs, databaseFile, arb, RotD, allowedVs30, allowedMag, allowedD )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,7 +6,7 @@ function [ SaKnown, indPer, knownPer, IMs, optInputs, Filename, dirLocation ] = 
 %% Load the ground motion database and set up data matrices
 
 % load the specified database
-load(databaseFile) 
+load(['Databases/' databaseFile]) 
 
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases
@@ -21,7 +21,7 @@ if arb == 1 % single-component selection -- treat each component as a seaparate 
     closest_D   = [closest_D; closest_D]; 
     dirLocation = [dirLocation; dirLocation];
 else % two-component selection
-    Filename    = Filename_1;
+    Filename    = [Filename_1 Filename_2];
     if RotD == 50 && exist('Sa_RotD50')
         SaKnown     = Sa_RotD50;
     elseif RotD == 100 && exist('Sa_RotD100')
@@ -65,15 +65,7 @@ recValidMag =  magnitude > allowedMag(1)  & magnitude < allowedMag(2);
 recValidDist = closest_D > allowedD(1)    & closest_D < allowedD(2);
 
 % flag indicies of allowable records that will be searched
-allowedIndex = recValidSoil & recValidMag & recValidDist & recValidSa; 
-
-% Process available spectra
-SaKnown = SaKnown(allowedIndex,:);       % allowed spectra defined at all periods
-IMs.sampleBig = log(SaKnown(:,indPer));  % logarithmic spectral accelerations at target periods
-optInputs.nBig = size(IMs.sampleBig,1);  % number of allowed spectra
-
-fprintf('Number of allowed ground motions = %i \n \n', optInputs.nBig)
-assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable ground motions');
+allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 
 
 end
