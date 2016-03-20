@@ -158,75 +158,77 @@ outputFile  = 'Output_File.dat'; % File name of the output file
 % User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load the user-chosen database and format according to type of selection
-% load the specified database
-load(databaseFile) 
+[SaKnown, indPer, knownPer, IMs, optInputs, Filename, dirLocation ] = ScreenDatabase(optInputs, databaseFile, arb, RotD, allowedVs30, allowedMag, allowedD );
 
-% Format appropriate ground motion metadata variables for single or two-
-% component selection. Additional metadata is available in the databases
-% and can be added here if desired 
-% Note: These lines should be modified if using the BBP_EXSIM_meta_data.mat
-% database file. See documentation for more details.
-if arb == 1
-    Filename    = [Filename_1; Filename_2];
-    SaKnown     = [Sa_1; Sa_2]; 
-    soil_Vs30   = [soil_Vs30; soil_Vs30]; 
-    magnitude   = [magnitude; magnitude]; 
-    closest_D   = [closest_D; closest_D]; 
-    dirLocation = [dirLocation; dirLocation];
-else % two-component selection
-    Filename    = Filename_1;
-    if RotD == 50 && exist('Sa_RotD50')
-        SaKnown     = Sa_RotD50;
-    elseif RotD == 100 && exist('Sa_RotD100')
-        SaKnown     = Sa_RotD100;
-    else
-        fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
-        % if data corresponding to user input RotD value does not exist,
-        % use the geometric mean of two single-component directions
-        SaKnown = sqrt(Sa_1.*Sa_2);
-    end
-end
+%% load the specified database
+% load(databaseFile) 
+% 
+% % Format appropriate ground motion metadata variables for single or two-
+% % component selection. Additional metadata is available in the databases
+% % and can be added here if desired 
+% % Note: These lines should be modified if using the BBP_EXSIM_meta_data.mat
+% % database file. See documentation for more details.
+% if arb == 1
+%     Filename    = [Filename_1; Filename_2];
+%     SaKnown     = [Sa_1; Sa_2]; 
+%     soil_Vs30   = [soil_Vs30; soil_Vs30]; 
+%     magnitude   = [magnitude; magnitude]; 
+%     closest_D   = [closest_D; closest_D]; 
+%     dirLocation = [dirLocation; dirLocation];
+% else % two-component selection
+%     Filename    = Filename_1;
+%     if RotD == 50 && exist('Sa_RotD50')
+%         SaKnown     = Sa_RotD50;
+%     elseif RotD == 100 && exist('Sa_RotD100')
+%         SaKnown     = Sa_RotD100;
+%     else
+%         fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
+%         % if data corresponding to user input RotD value does not exist,
+%         % use the geometric mean of two single-component directions
+%         SaKnown = sqrt(Sa_1.*Sa_2);
+%     end
+% end
+% 
+% %% Arrange available spectra in usable format and check for invalid values
+% % Create variable for known periods
+% knownPer = Periods; 
+% 
+% % Modify TgtPer to include T1 if running a conditional selection
+% if optInputs.cond == 1 && ~any(optInputs.TgtPer == optInputs.T1)
+%     optInputs.TgtPer = sort([optInputs.TgtPer optInputs.T1]);
+% end
+% 
+% % Match periods (known periods and target periods for error computations) 
+% % save the indicies of the matched periods in knownPer
+% indPer = zeros(length(optInputs.TgtPer),1);
+% for i=1:length(optInputs.TgtPer)
+%     [~ , indPer(i)] = min(abs(knownPer - optInputs.TgtPer(i)));
+% end
+% 
+% % Remove any repeated values from TgtPer and redefine TgtPer as periods 
+% % provided in databases
+% indPer = unique(indPer);
+% optInputs.TgtPer = knownPer(indPer);
+% 
+% % Identify the index of T1 within TgtPer 
+% [~, optInputs.indT1] = min(abs(optInputs.TgtPer - optInputs.T1));
 
-%% Arrange available spectra in usable format and check for invalid values
-% Create variable for known periods
-knownPer = Periods; 
-
-% Modify TgtPer to include T1 if running a conditional selection
-if optInputs.cond == 1 && ~any(optInputs.TgtPer == optInputs.T1)
-    optInputs.TgtPer = sort([optInputs.TgtPer optInputs.T1]);
-end
-
-% Match periods (known periods and target periods for error computations) 
-% save the indicies of the matched periods in knownPer
-indPer = zeros(length(optInputs.TgtPer),1);
-for i=1:length(optInputs.TgtPer)
-    [~ , indPer(i)] = min(abs(knownPer - optInputs.TgtPer(i)));
-end
-
-% Remove any repeated values from TgtPer and redefine TgtPer as periods 
-% provided in databases
-indPer = unique(indPer);
-optInputs.TgtPer = knownPer(indPer);
-
-% Identify the index of T1 within TgtPer 
-[~, optInputs.indT1] = min(abs(optInputs.TgtPer - optInputs.T1));
-
-%% Screen the records to be considered
-recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
-recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
-recValidMag =  magnitude > allowedMag(1)  & magnitude < allowedMag(2);
-recValidDist = closest_D > allowedD(1)    & closest_D < allowedD(2);
-
-% find indicies of allowable records that will be searched
-allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
-
-% Process available spectra
-SaKnown = SaKnown(allowedIndex,:);       % allowed spectra defined at all periods
-IMs.sampleBig = log(SaKnown(:,indPer));  % logarithmic spectral accelerations at target periods
-optInputs.nBig = size(IMs.sampleBig,1);  % number of allowed spectra
-
-fprintf('Number of allowed ground motions = %i \n \n', optInputs.nBig)
-assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable ground motions');
+% %% Screen the records to be considered
+% recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
+% recValidSoil = soil_Vs30 > allowedVs30(1) & soil_Vs30 < allowedVs30(2);
+% recValidMag =  magnitude > allowedMag(1)  & magnitude < allowedMag(2);
+% recValidDist = closest_D > allowedD(1)    & closest_D < allowedD(2);
+% 
+% % find indicies of allowable records that will be searched
+% allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
+% 
+% % Process available spectra
+% SaKnown = SaKnown(allowedIndex,:);       % allowed spectra defined at all periods
+% IMs.sampleBig = log(SaKnown(:,indPer));  % logarithmic spectral accelerations at target periods
+% optInputs.nBig = size(IMs.sampleBig,1);  % number of allowed spectra
+% 
+% fprintf('Number of allowed ground motions = %i \n \n', optInputs.nBig)
+% assert(optInputs.nBig >= optInputs.nGM, 'Warning: there are not enough allowable ground motions');
 
 %% Compute target means and covariances of spectral values 
 % Input the following variables and comment out ComputeTargets() for a
