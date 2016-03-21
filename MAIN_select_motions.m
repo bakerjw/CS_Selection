@@ -211,10 +211,10 @@ end
 
 %% Plot results, if desired
 if showPlots
-    plot_results(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer, knownCovReq )
+    plot_results(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
 end
  
 %% Output results to a text file 
 rec = allowedIndex(IMs.recID); % selected motions, as indixed in the original database
 
-write_output(rec, finalScaleFac, outputFile, getTimeSeries, Filename, dirLocation)
+write_output(rec, IMs, outputFile, getTimeSeries, Filename, dirLocation)

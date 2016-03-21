@@ -1,4 +1,4 @@
-function [  ] = plot_results( selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer, knownCovReq )
+function [  ] = plot_results( selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
 %% Produce a number of plots of target and selected response spectra 
 
 % Variables used here
@@ -23,7 +23,7 @@ figure
 loglog(selectionParams.TgtPer, exp(targetSa.meanReq), '-r', 'linewidth', 3)
 hold on
 loglog(selectionParams.TgtPer, exp(targetSa.meanReq + 1.96*sqrt(diag(targetSa.covReq))'), '--r', 'linewidth', 3)
-loglog(selectionParams.TgtPer, simulatedSpectra, 'k');
+loglog(selectionParams.TgtPer, simulatedSpectra', 'k');
 loglog(selectionParams.TgtPer, exp(targetSa.meanReq - 1.96*sqrt(diag(targetSa.covReq))'), '--r', 'linewidth', 3)
 axis([min(selectionParams.TgtPer) max(selectionParams.TgtPer) 1e-2 5])
 xlabel('T (s)')
@@ -79,16 +79,14 @@ selectedSa = [selectedSa(:,knownPer<selectionParams.T1) interp1(knownPer,selecte
 selectedCorr = corrcoef(selectedSa);
 
 % Calculate target correlations using the target covariance matrix
-knownStdevs = sqrt(diag(knownCovReq));
-corrReq = knownCovReq./(knownStdevs*knownStdevs');
+knownStdevs = sqrt(diag(targetSa.covAllT));
+corrReq = targetSa.covAllT./(knownStdevs*knownStdevs');
 
 % Contours of correlations from selected spectra
 figure
 contour(knownPer(knownPer<=10), knownPer(knownPer<=10), selectedCorr);
 set(gca,'yscale','log','xscale','log');
 axis square;
-xlabel('T_1');
-ylabel('T_2');
 title('Sample correlation coefficients contour');
 xlabel('T_1 (s)')
 ylabel('T_2 (s)')

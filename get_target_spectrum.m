@@ -38,11 +38,14 @@ function [ targetSa ] = get_target_spectrum(knownPer, selectionParams, indPer, r
 %                 targetSa.covReq  = target coveriance matrix for log Sa;
 %                 targetSa.stdevs  = target standard deviations for log Sa;
 
+% drop long periods from the calculation, due to inability of the GMPE to
+% evaluate these
+knownPer = knownPer(knownPer<=10);
 
 
 %% Compute target mean spectrum
 % compute the median and standard deviations of RotD50 response spectrum values 
-[sa, sigma] = gmpe_bssa_2014(rup.M_bar, knownPer(knownPer<=10), rup.Rjb, rup.Fault_Type, rup.region, rup.z1, rup.Vs30);
+[sa, sigma] = gmpe_bssa_2014(rup.M_bar, knownPer, rup.Rjb, rup.Fault_Type, rup.region, rup.z1, rup.Vs30);
 
 % modify spectral targets if RotD100 values were specified for
 % two-component selection, see the following document for more details:
@@ -57,8 +60,8 @@ end
 % back-calculate and epsilon to get the targe Sa(T_cond) if needed
 if ~isempty(selectionParams.SaTcond)
     
-    medianSaTcond = exp(interp1(log(knownPer(knownPer<=10)), log(sa), log(selectionParams.T1))); % log-log interp to get median Sa
-    sigmaSaTcond = exp(interp1(log(knownPer(knownPer<=10)), log(sigma), log(selectionParams.T1))); % log-log interp to get median Sa
+    medianSaTcond = exp(interp1(log(knownPer), log(sa), log(selectionParams.T1))); % log-log interp to get median Sa
+    sigmaSaTcond = exp(interp1(log(knownPer), log(sigma), log(selectionParams.T1))); % log-log interp to get median Sa
     eps_bar = (log(selectionParams.SaTcond) - log(medianSaTcond))/sigmaSaTcond;
     
     fprintf(['Back calculated epsilon = ' num2str(eps_bar,3) ' \n \n']); % output result for user verification
@@ -118,5 +121,9 @@ end
 targetSa.meanReq = TgtMean(indPer); 
 targetSa.covReq  = TgtCovs(indPer,indPer);
 targetSa.stdevs  = sqrt(diag(targetSa.covReq))';
+
+% target mean and covariance at all periods
+targetSa.meanAllT = TgtMean;  
+targetSa.covAllT  = TgtCovs;
 
 
