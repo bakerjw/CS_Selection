@@ -1,4 +1,4 @@
-function [  ] = plot_results( optInputs, Tgts, IMs, simulatedSpectra, SaKnown, knownPer, knownCovReq )
+function [  ] = plot_results( selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer, knownCovReq )
 %% Produce a number of plots of target and selected response spectra 
 
 % Variables used here
@@ -20,12 +20,12 @@ figureFontSize = 18; % font size for figure text
 
 % Plot simulated response spectra
 figure
-loglog(optInputs.TgtPer, exp(Tgts.meanReq), '-r', 'linewidth', 3)
+loglog(selectionParams.TgtPer, exp(targetSa.meanReq), '-r', 'linewidth', 3)
 hold on
-loglog(optInputs.TgtPer, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-loglog(optInputs.TgtPer, simulatedSpectra, 'k');
-loglog(optInputs.TgtPer, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--r', 'linewidth', 3)
-axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
+loglog(selectionParams.TgtPer, exp(targetSa.meanReq + 1.96*sqrt(diag(targetSa.covReq))'), '--r', 'linewidth', 3)
+loglog(selectionParams.TgtPer, simulatedSpectra, 'k');
+loglog(selectionParams.TgtPer, exp(targetSa.meanReq - 1.96*sqrt(diag(targetSa.covReq))'), '--r', 'linewidth', 3)
+axis([min(selectionParams.TgtPer) max(selectionParams.TgtPer) 1e-2 5])
 xlabel('T (s)')
 ylabel('S_a (g)')
 legend('Median','2.5 and 97.5 percentile', 'Simulated spectra')
@@ -34,12 +34,12 @@ set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Plot selected response spectra
 figure
-loglog(optInputs.TgtPer, exp(Tgts.meanReq), 'b', 'linewidth', 3)
+loglog(selectionParams.TgtPer, exp(targetSa.meanReq), 'b', 'linewidth', 3)
 hold on
-loglog(optInputs.TgtPer, exp(Tgts.meanReq + 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
+loglog(selectionParams.TgtPer, exp(targetSa.meanReq + 1.96*sqrt(diag(targetSa.covReq))'), '--b', 'linewidth', 3)
 loglog(knownPer,SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2)),'k');
-loglog(optInputs.TgtPer, exp(Tgts.meanReq - 1.96*sqrt(diag(Tgts.covReq))'), '--b', 'linewidth', 3)
-axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
+loglog(selectionParams.TgtPer, exp(targetSa.meanReq - 1.96*sqrt(diag(targetSa.covReq))'), '--b', 'linewidth', 3)
+axis([min(selectionParams.TgtPer) max(selectionParams.TgtPer) 1e-2 5])
 xlabel('T (s)');
 ylabel('S_a (g)');
 legend('Median','2.5 and 97.5 percentile','Selected ground motions');
@@ -48,11 +48,11 @@ set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Target, initial, and finally selected medians
 figure
-loglog(optInputs.TgtPer, exp(Tgts.meanReq),'k','linewidth',1)
+loglog(selectionParams.TgtPer, exp(targetSa.meanReq),'k','linewidth',1)
 hold on
 loglog(knownPer, exp(IMs.stageOneMeans),'r*--', 'linewidth',1)
 loglog(knownPer,exp(mean(log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2))))),'b--','linewidth',1)
-axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 1e-2 5])
+axis([min(selectionParams.TgtPer) max(selectionParams.TgtPer) 1e-2 5])
 xlabel('T (s)');
 ylabel('Median S_a (g)');
 legend('Target', 'Stage 1 selection', 'Final selection');
@@ -61,11 +61,11 @@ set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Target, initial, and finally selected standard deviations
 figure
-semilogx(optInputs.TgtPer,Tgts.stdevs,'k','linewidth',1)
+semilogx(selectionParams.TgtPer,targetSa.stdevs,'k','linewidth',1)
 hold on
 semilogx(knownPer, IMs.stageOneStdevs,'r*--','linewidth',1)
 semilogx(knownPer,std(log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2)))),'b--','linewidth',1)
-axis([min(optInputs.TgtPer) max(optInputs.TgtPer) 0 1])
+axis([min(selectionParams.TgtPer) max(selectionParams.TgtPer) 0 1])
 xlabel('T (s)');
 ylabel('Standard deviation of lnS_a');
 legend('Target', 'Stage 1 selection','Final selection');
@@ -75,7 +75,7 @@ set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Compute sample correlations from selected spectra
 selectedSa = log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2)));
-selectedSa = [selectedSa(:,knownPer<optInputs.T1) interp1(knownPer,selectedSa',optInputs.T1)' selectedSa(:,knownPer>optInputs.T1 & knownPer<=10)];
+selectedSa = [selectedSa(:,knownPer<selectionParams.T1) interp1(knownPer,selectedSa',selectionParams.T1)' selectedSa(:,knownPer>selectionParams.T1 & knownPer<=10)];
 selectedCorr = corrcoef(selectedSa);
 
 % Calculate target correlations using the target covariance matrix

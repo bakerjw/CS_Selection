@@ -1,14 +1,14 @@
-function [ IMs ] = optimize_ground_motions_par( optInputs, Tgts, IMs )
+function [ IMs ] = optimize_ground_motions_par( selectionParams, targetSa, IMs )
 % Parallelized greedy optimization, for variable definitions, see
-% optimize_ground_motions(optInputs, Tgts, IMs)
+% optimize_ground_motions(selectionParams, targetSa, IMs)
 
 sampleSmall = IMs.sampleSmall;
 
 display('Please wait...This algorithm takes a few minutes depending on the number of records to be selected');
-if optInputs.cond == 0
+if selectionParams.cond == 0
     display('The algorithm is slower when scaling is used');
 end
-if optInputs.optType == 1
+if selectionParams.optType == 1
     display('The algorithm is slower when optimizing with the KS-test Dn statistic');
 end
 
@@ -16,40 +16,40 @@ end
 % calculate the emperical CDF values (which will be the same at each
 % period) and initialize a vector of Dn values
 emp_cdf = 0;
-if optInputs.optType == 1
-    emp_cdf = linspace(0,1,optInputs.nGM+1);
+if selectionParams.optType == 1
+    emp_cdf = linspace(0,1,selectionParams.nGM+1);
 end
 
 numWorkers = 2;
 parobj = parpool(numWorkers);
 
 % Initialize scale factor vector
-scaleFac = ones(optInputs.nBig,1);
-for k=1:optInputs.nLoop % Number of passes
+scaleFac = ones(selectionParams.nBig,1);
+for k=1:selectionParams.nLoop % Number of passes
     
-    for i=1:optInputs.nGM % Selects nGM ground motions
-        display([num2str(round(((k-1)*optInputs.nGM + i-1)/(optInputs.nLoop*optInputs.nGM)*100)) '% done']);
+    for i=1:selectionParams.nGM % Selects nGM ground motions
+        display([num2str(round(((k-1)*selectionParams.nGM + i-1)/(selectionParams.nLoop*selectionParams.nGM)*100)) '% done']);
         
-        devTotal = zeros(optInputs.nBig,1);
+        devTotal = zeros(selectionParams.nBig,1);
         sampleSmall(i,:) = [];
         IMs.recID(i,:) = [];
         
-        if optInputs.isScaled == 1
-            if optInputs.cond == 1
-                scaleFac = exp(optInputs.lnSa1)./exp(IMs.sampleBig(:,optInputs.rec));
-            elseif optInputs.cond == 0
-                [scaleFac, devTotal] = bestScaleFactorPar(IMs.sampleBig, sampleSmall, Tgts.meanReq, Tgts.stdevs, optInputs.weights, optInputs.maxScale);
+        if selectionParams.isScaled == 1
+            if selectionParams.cond == 1
+                scaleFac = exp(selectionParams.lnSa1)./exp(IMs.sampleBig(:,selectionParams.rec));
+            elseif selectionParams.cond == 0
+                [scaleFac, devTotal] = bestScaleFactorPar(IMs.sampleBig, sampleSmall, targetSa.meanReq, targetSa.stdevs, selectionParams.weights, selectionParams.maxScale);
             end
         end
         
         % Try to add a new spectra to the subset list
         % new function 
-        [devTotal] = ParLoop(devTotal, scaleFac, optInputs, sampleSmall, IMs.sampleBig, Tgts.meanReq,...
-                             Tgts.stdevs, emp_cdf);                                
+        [devTotal] = ParLoop(devTotal, scaleFac, selectionParams, sampleSmall, IMs.sampleBig, targetSa.meanReq,...
+                             targetSa.stdevs, emp_cdf);                                
                                 
         [minDevFinal, minID] = min(devTotal);
         % Add new element in the right slot
-        if optInputs.isScaled == 1
+        if selectionParams.isScaled == 1
             IMs.scaleFac(i) = scaleFac(minID);
         else
             IMs.scaleFac(i) = 1;
@@ -63,23 +63,23 @@ for k=1:optInputs.nLoop % Number of passes
     % specified tolerance? Recalculate new standard deviations of new
     % sampleSmall and then recalculate new maximum percent errors of means
     % and standard deviations 
-    if optInputs.optType == 0
-        notT1 = find(optInputs.PerTgt ~= optInputs.PerTgt(optInputs.rec));
+    if selectionParams.optType == 0
+        notT1 = find(selectionParams.PerTgt ~= selectionParams.PerTgt(selectionParams.rec));
         stdevs = std(sampleSmall);
-        meanErr = max(abs(exp(mean(sampleSmall))-Tgts.means)./Tgts.means)*100;
-        stdErr = max(abs(stdevs(notT1) - Tgts.stdevs(notT1))./Tgts.stdevs(notT1))*100;
+        meanErr = max(abs(exp(mean(sampleSmall))-targetSa.means)./targetSa.means)*100;
+        stdErr = max(abs(stdevs(notT1) - targetSa.stdevs(notT1))./targetSa.stdevs(notT1))*100;
         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
         fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
         
         % If error is now within the tolerance, break out of the
         % optimization
-        if meanErr < optInputs.tol && stdErr < optInputs.tol
+        if meanErr < selectionParams.tol && stdErr < selectionParams.tol
             display('The percent errors between chosen and target spectra are now within the required tolerances.');
             break;
         end
     end
     
-    fprintf('End of loop %1.0f of %1.0f \n', k, optInputs.nLoop) 
+    fprintf('End of loop %1.0f of %1.0f \n', k, selectionParams.nLoop) 
 end
 
 display('100% done');
@@ -131,24 +131,24 @@ end
 
 
 
-function [ devTotal ] = ParLoop( devTotal, scaleFac, optInputs, sampleSmall, sampleBig, meanReq, stdevs, emp_cdf )
+function [ devTotal ] = ParLoop( devTotal, scaleFac, selectionParams, sampleSmall, sampleBig, meanReq, stdevs, emp_cdf )
 % Parallel loop to use within greedy optimization
-optType = optInputs.optType;
+optType = selectionParams.optType;
 if all(devTotal) && optType == 0 
     return;
 end
 
-PerTgt = optInputs.PerTgt;
-cond = optInputs.cond;
-isScaled = optInputs.isScaled;
-weights = optInputs.weights;
-penalty = optInputs.penalty;
-maxScale = optInputs.maxScale;
+PerTgt = selectionParams.PerTgt;
+cond = selectionParams.cond;
+isScaled = selectionParams.isScaled;
+weights = selectionParams.weights;
+penalty = selectionParams.penalty;
+maxScale = selectionParams.maxScale;
 recID = IMs.recID;
 
 
 
-parfor j = 1:optInputs.nBig
+parfor j = 1:selectionParams.nBig
     sampleSmallTemp = [sampleSmall;sampleBig(j,:)+log(scaleFac(j))];
     
     % Calculate the appropriate measure of deviation and store in
