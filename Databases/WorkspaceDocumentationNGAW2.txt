@@ -31,14 +31,10 @@ Sa_RotD100        : Orientation independent two-component 					spectral
                     acceleration
 Sa_RotD50         : Orientation independent two-component 					spectral
                     acceleration
-distance_cambell  : Campbell distance
 closest_D         : Closest distance to the ruptured area
-distance_epi      : Epicentral distance
-distance_hyp      : Hypocentral distance
-distance_jb       : Joyner-Boore distance
 lowest_usable_freq: Lowest usable frequency
 magnitude         : Magnitude
-Mechanism         : Fault mechanism
+mechanism         : Fault mechanism
 soil_Vs30         : Vs30 value
  
  

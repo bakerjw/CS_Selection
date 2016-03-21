@@ -1,7 +1,6 @@
-% Identifies the best scaled ground motions to be used with the greedy
-% algortihm
-
 function [scaleFac, minDev] = bestScaleFactor(sampleBig,sampleSmall,meanReq,sigma,weights,maxScale)
+% Identify the best scaled ground motions to be used with the greedy
+% algortihm
 
 % Determine size of sampleSmall for standard deviation calculations
 scales = 0.1:0.1:maxScale;
@@ -10,7 +9,6 @@ scaleFac = zeros(size(sampleBig,1),1);
 newGM = nGM+1;
 devTotal = zeros(length(scales),1);
 minDev = zeros(length(scales),1);
-% minDevFinal = zeros(size(sampleBig,1),1);
 
 for i = 1:size(sampleBig,1)
     for j=1:length(scales)
