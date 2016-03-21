@@ -62,9 +62,12 @@ end
 scaleFac = ones(selectionParams.nBig,1);
 IMs.scaleFac = ones(selectionParams.nGM,1);
 
+hw = waitbar(0,'Optimizing ground motion selection');
+
 for k=1:selectionParams.nLoop % Number of passes
     for i=1:selectionParams.nGM % Selects nGM ground motions
-        display([num2str(round(((k-1)*selectionParams.nGM + i-1)/(selectionParams.nLoop*selectionParams.nGM)*100)) '% done']);
+        waitbar(((k-1)*selectionParams.nGM + i-1)/(selectionParams.nLoop*selectionParams.nGM)); % update percentage completion 
+
         devTotal = zeros(selectionParams.nBig,1); % initialize measure of deviation for each selected ground motion
         sampleSmall(i,:) = []; % remove initially selected record to be replaced
         IMs.recID(i,:) = []; 
@@ -147,7 +150,7 @@ for k=1:selectionParams.nLoop % Number of passes
     fprintf('End of loop %1.0f of %1.0f \n', k, selectionParams.nLoop) 
 end
 
-display('100% done');
+close(hw); % close waitbar
 
 % Save final selection for output
 IMs.sampleSmall = sampleSmall;
