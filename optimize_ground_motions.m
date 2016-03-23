@@ -39,12 +39,12 @@ function [ IMs ] = optimize_ground_motions( selectionParams, targetSa, IMs )
 %            sampleBig  : The matrix of logarithmic spectra that will be 
 %                          searched
 
+
 % sampleSmall changes size throughout the optimization. Redfine sampleSmall
 % here. sampleSmall is returned as a new variable, not within IMs
 sampleSmall = IMs.sampleSmall;
 
-display('Please wait...This algorithm takes a few minutes depending on the number of records to be selected');
-if selectionParams.cond == 0 & selectionParams.isScaled
+if selectionParams.cond == 0 && selectionParams.isScaled
     display('The algorithm is slower when scaling is used');
 end
 if selectionParams.optType == 1
@@ -98,23 +98,28 @@ for k=1:selectionParams.nLoop % Number of passes
         waitbar(((k-1)*selectionParams.nGM + i)/(selectionParams.nLoop*selectionParams.nGM)); % update waitbar
     end
     
-    % Can the optimization be stopped after this loop based on the user
-    % specified tolerance? Recalculate new means and standard deviations of
-    % new sampleSmall and then recalculate new maximum percent errors of
-    % means and standard deviations
-    if selectionParams.optType == 0
-        stdevs = std(sampleSmall);
-        meanErr = max(abs(exp(mean(sampleSmall))- exp(targetSa.meanReq))./exp(targetSa.meanReq))*100;
-        stdErr = max(abs(stdevs(1:end ~= selectionParams.indT1) - targetSa.stdevs(1:end ~= selectionParams.indT1))./targetSa.stdevs(1:end ~= selectionParams.indT1))*100;
-        fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
-        fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
-        
-        % If error is within the tolerance, break out of the optimization
-        if meanErr < selectionParams.tol && stdErr < selectionParams.tol
-            display('The percent errors between chosen and target spectra are now within the required tolerances.');
-            break;
-        end
-    end    
+    % check whether results are within tolerance, and stop optimization if so
+    if within_tolerance(sampleSmall, targetSa, selectionParams)
+        break;
+    end
+    
+%     % Can the optimization be stopped after this loop based on the user
+%     % specified tolerance? Recalculate new means and standard deviations of
+%     % new sampleSmall and then recalculate new maximum percent errors of
+%     % means and standard deviations
+%     if selectionParams.optType == 0
+%         stdevs = std(sampleSmall);
+%         meanErr = max(abs(exp(mean(sampleSmall))- exp(targetSa.meanReq))./exp(targetSa.meanReq))*100;
+%         stdErr = max(abs(stdevs(1:end ~= selectionParams.indT1) - targetSa.stdevs(1:end ~= selectionParams.indT1))./targetSa.stdevs(1:end ~= selectionParams.indT1))*100;
+%         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
+%         fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
+%         
+%         % If error is within the tolerance, break out of the optimization
+%         if meanErr < selectionParams.tol && stdErr < selectionParams.tol
+%             display('The percent errors between chosen and target spectra are now within the required tolerances.');
+%             break;
+%         end
+%     end    
 end
 
 close(hw); % close waitbar
