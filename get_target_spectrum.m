@@ -60,8 +60,8 @@ end
 % back-calculate and epsilon to get the targe Sa(T_cond) if needed
 if ~isempty(selectionParams.SaTcond)
     
-    medianSaTcond = exp(interp1(log(knownPer), log(sa), log(selectionParams.T1))); % log-log interp to get median Sa
-    sigmaSaTcond = exp(interp1(log(knownPer), log(sigma), log(selectionParams.T1))); % log-log interp to get median Sa
+    medianSaTcond = exp(interp1(log(knownPer), log(sa), log(selectionParams.Tcond))); % log-log interp to get median Sa
+    sigmaSaTcond = exp(interp1(log(knownPer), log(sigma), log(selectionParams.Tcond))); % log-log interp to get median Sa
     eps_bar = (log(selectionParams.SaTcond) - log(medianSaTcond))/sigmaSaTcond;
     
     fprintf(['Back calculated epsilon = ' num2str(eps_bar,3) ' \n \n']); % output result for user verification
@@ -75,7 +75,7 @@ if selectionParams.cond == 1
     % compute correlations and the conditional mean spectrum
     rho = zeros(1,length(sa));  
     for i = 1:length(sa)
-        rho(i) = gmpe_bj_2008_corr(knownPer(i), selectionParams.TgtPer(selectionParams.indT1));
+        rho(i) = gmpe_bj_2008_corr(knownPer(i), selectionParams.TgtPer(selectionParams.indTcond));
     end
     
     TgtMean = log(sa) + sigma.*eps_bar.*rho;
@@ -94,7 +94,7 @@ for i=1:length(sa)
         Tj = knownPer(j);
 
         % Means and variances
-        varT = sigma(selectionParams.indT1)^2;
+        varT = sigma(selectionParams.indTcond)^2;
         sigma22 = varT;
         var1 = sigma(i)^2;
         var2 = sigma(j)^2;
@@ -103,7 +103,7 @@ for i=1:length(sa)
         if selectionParams.cond == 1 
             sigmaCorr = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2);
             sigma11 = [var1 sigmaCorr;sigmaCorr var2];
-            sigma12 = [gmpe_bj_2008_corr(Ti, selectionParams.T1)*sqrt(var1*varT);baker_jayaram_correlation(selectionParams.T1, Tj)*sqrt(var2*varT)];
+            sigma12 = [gmpe_bj_2008_corr(Ti, selectionParams.Tcond)*sqrt(var1*varT);baker_jayaram_correlation(selectionParams.Tcond, Tj)*sqrt(var2*varT)];
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
             TgtCovs(i,j) = sigmaCond(1,2);
         elseif selectionParams.cond == 0

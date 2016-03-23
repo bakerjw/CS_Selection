@@ -48,7 +48,7 @@
 %                         and skewness] e.g., [1.0,2.0 0.3] 
 %           .nLoop      : Number of loops of optimization to perform.
 %           .nBig       : The number of spectra that will be searched
-%           .indT1      : Index of T1, the conditioning period
+%           .indTcond   : Index of Tcond, the conditioning period
 %           .recID      : Vector of index values for the selected
 %                         spectra
 % 
@@ -111,7 +111,7 @@ selectionParams.RotD            = 50;
 
 % Number of ground motions and spectral periods of interest
 selectionParams.nGM        = 30;  % number of ground motions to be selected 
-selectionParams.T1         = 1.5; % Period at which spectra should be scaled and matched 
+selectionParams.Tcond      = 1.5; % Period at which spectra should be scaled and matched 
 selectionParams.Tmin       = 0.1; % smallest spectral period of interest
 selectionParams.Tmax       = 10;  % largest spectral period of interest
 
@@ -180,8 +180,8 @@ IMs.sampleBig = log(SaKnown(:,indPer));  % save the logarithmic spectral acceler
 % Compute target mean and covariance at all periods in the database
 targetSa = get_target_spectrum(knownPer, selectionParams, indPer, rup);
                                                                            
-% Define the spectral accleration at T1 that all ground motions will be scaled to
-selectionParams.lnSa1 = targetSa.meanReq(selectionParams.indT1); 
+% Define the spectral accleration at Tcond that all ground motions will be scaled to
+selectionParams.lnSa1 = targetSa.meanReq(selectionParams.indTcond); 
 
 %% Simulate response spectra matching the computed targets
 simulatedSpectra = simulate_spectra(targetSa, selectionParams, seedValue, nTrials);
@@ -194,15 +194,6 @@ IMs.stageOneScaleFac =  IMs.scaleFac;
 IMs.stageOneMeans = mean(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
 IMs.stageOneStdevs= std(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
 
-% % Compute error of selection relative to target (skip T1 period for conditional selection)
-% meanErr = max(abs(exp(IMs.stageOneMeans(indPer))-exp(targetSa.meanReq))./exp(targetSa.meanReq))*100;
-% stdErr = max(abs(IMs.stageOneStdevs(indPer ~= indPer(selectionParams.indT1))-targetSa.stdevs(1:end ~= selectionParams.indT1))./targetSa.stdevs(1:end ~= selectionParams.indT1))*100;
-% 
-% % Display error between the selected ground motions and the targets
-% fprintf('End of simulation stage \n')
-% fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
-% fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr); 
-
 %% Further optimize the ground motion selection, if needed
 
 % check errors versus tolerances to see whether optimization is needed
@@ -212,12 +203,6 @@ else % run optimization
     IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
     % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
 end
-
-
-% if meanErr > selectionParams.tol || stdErr > selectionParams.tol 
-% else % otherwise, skip greedy optimization
-%     fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
-% end
 
 %% Plot results, if desired
 if showPlots

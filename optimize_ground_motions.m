@@ -23,7 +23,7 @@ function [ IMs ] = optimize_ground_motions( selectionParams, targetSa, IMs )
 %            nLoop      : Number of loops of optimization to perform.
 %                         Default value = 2
 %            nBig       : The number of spectra that will be searched
-%            indT1      : This is the index of T1, the conditioning period
+%            indTcond   : The index of Tcond, the conditioning period
 %            recID      : This is a vector of index values for chosen
 %                         spectra
 % 
@@ -58,7 +58,7 @@ if selectionParams.isScaled == 0 % no scaling so set scale factors = 1
     scaleFac = ones(selectionParams.nBig,1);
     IMs.scaleFac = ones(selectionParams.nGM,1);
 elseif selectionParams.isScaled && selectionParams.cond % Sa(Tcond) scaling
-    scaleFac = exp(selectionParams.lnSa1)./exp(IMs.sampleBig(:,selectionParams.indT1));
+    scaleFac = exp(selectionParams.lnSa1)./exp(IMs.sampleBig(:,selectionParams.indTcond));
     % get indices of ground motions with allowable scale factors, for further consideration
     idxAllow = find(scaleFac < selectionParams.maxScale);
 end
@@ -110,7 +110,7 @@ for k=1:selectionParams.nLoop % Number of passes
 %     if selectionParams.optType == 0
 %         stdevs = std(sampleSmall);
 %         meanErr = max(abs(exp(mean(sampleSmall))- exp(targetSa.meanReq))./exp(targetSa.meanReq))*100;
-%         stdErr = max(abs(stdevs(1:end ~= selectionParams.indT1) - targetSa.stdevs(1:end ~= selectionParams.indT1))./targetSa.stdevs(1:end ~= selectionParams.indT1))*100;
+%         stdErr = max(abs(stdevs(1:end ~= selectionParams.indTcond) - targetSa.stdevs(1:end ~= selectionParams.indTcond))./targetSa.stdevs(1:end ~= selectionParams.indTcond))*100;
 %         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
 %         fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
 %         

@@ -38,9 +38,9 @@ end
 % Create variable for known periods
 knownPer = Periods; 
 
-% Modify TgtPer to include T1 if running a conditional selection
-if selectionParams.cond == 1 && ~any(selectionParams.TgtPer == selectionParams.T1)
-    selectionParams.TgtPer = sort([selectionParams.TgtPer selectionParams.T1]);
+% Modify TgtPer to include Tcond if running a conditional selection
+if selectionParams.cond == 1 && ~any(selectionParams.TgtPer == selectionParams.Tcond)
+    selectionParams.TgtPer = sort([selectionParams.TgtPer selectionParams.Tcond]);
 end
 
 % Match periods (known periods and target periods for error computations) 
@@ -55,8 +55,8 @@ end
 indPer = unique(indPer);
 selectionParams.TgtPer = knownPer(indPer);
 
-% Identify the index of T1 within TgtPer 
-[~, selectionParams.indT1] = min(abs(selectionParams.TgtPer - selectionParams.T1));
+% Identify the index of Tcond within TgtPer 
+[~, selectionParams.indTcond] = min(abs(selectionParams.TgtPer - selectionParams.Tcond));
 
 %% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
