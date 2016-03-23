@@ -80,11 +80,11 @@ for k=1:selectionParams.nLoop % Number of passes
         
         % Try to add a new spectrum to the subset list
         devTotal = 1000000 * ones(selectionParams.nBig,1); % initialize to large errors, and recompute for allowable records
-        for j = 1:selectionParams.nBig
+        for j = 1:length(idxAllow) 
             
-            if ~any(IMs.recID == j) % if this candidate is not already in the set 
-                testSpectra = [sampleSmall; IMs.sampleBig(j,:)+log(scaleFac(j))]; % add candidate to set
-                devTotal(j) = compute_spectrum_error(selectionParams, targetSa, testSpectra);
+            if ~any(IMs.recID == idxAllow(j)) % if this candidate is not already in the set 
+                testSpectra = [sampleSmall; IMs.sampleBig(idxAllow(j),:)+log(scaleFac(idxAllow(j)))]; % add candidate to set
+                devTotal(idxAllow(j)) = compute_spectrum_error(selectionParams, targetSa, testSpectra);
             end
             
         end
