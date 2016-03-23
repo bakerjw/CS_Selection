@@ -1,6 +1,6 @@
-function [scaleFac, minDev] = bestScaleFactor(sampleBig,sampleSmall,meanReq,sigma,weights,maxScale)
-% Identify the best scaled ground motions to be used with the greedy
-% algortihm
+function [scaleFac, minDev] = compute_scale_factor(sampleBig,sampleSmall,meanReq,sigma,weights,maxScale)
+% Compute scale factors for a set of candidate ground motions, when using 
+% an Unconditional Spectrum target 
 
 % Determine size of sampleSmall for standard deviation calculations
 scales = 0.1:0.1:maxScale;
