@@ -117,6 +117,10 @@ if selectionParams.useVar == 0
     TgtCovs = zeros(size(TgtCovs));
 end
 
+% find covariance values of zero and set them to a small number so that
+% random number generation can be performed
+TgtCovs( abs(TgtCovs) < 1e-10) = 1e-10;
+
 % Store target mean and covariance matrix at target periods
 targetSa.meanReq = TgtMean(indPer); 
 targetSa.covReq  = TgtCovs(indPer,indPer);

@@ -8,12 +8,6 @@ else
     rng('shuffle');
 end
 
-
-% find covariance values of zero and set them to a small number so that
-% random number generation can be performed
-targetSa.covReq( abs(targetSa.covReq) < 1e-17) = 1e-17;
-
-
 % Generate simulated response spectra with best matches to the target values
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
