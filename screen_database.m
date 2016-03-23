@@ -1,9 +1,7 @@
 function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex ] = screen_database(selectionParams, allowedRecs )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+% Load a database of ground motion data, and screen it to identify usable
+% ground motions for potential selection
 
-
-%% Load the ground motion database and set up data matrices
 
 % load the specified database
 load(['Databases/' selectionParams.databaseFile]) 
@@ -35,8 +33,10 @@ else % two-component selection
 end
 
 %% Arrange available spectra in usable format and check for invalid values
+
 % Create variable for known periods
-knownPer = Periods; 
+idxPer = find(Periods <= 10); % throw out periods > 10s, as they cause problems with the GMPE evaluation
+knownPer = Periods(idxPer); 
 
 % Modify TgtPer to include Tcond if running a conditional selection
 if selectionParams.cond == 1 && ~any(selectionParams.TgtPer == selectionParams.Tcond)
@@ -68,7 +68,7 @@ recValidDist = closest_D > allowedRecs.D(1)    & closest_D < allowedRecs.D(2);
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 
 % resize SaKnown to include only allowed records
-SaKnown = SaKnown(allowedIndex,:);       
+SaKnown = SaKnown(allowedIndex,idxPer);       
 
 % count number of allowed spectra
 selectionParams.nBig = length(allowedIndex);  

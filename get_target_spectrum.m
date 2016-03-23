@@ -38,9 +38,6 @@ function [ targetSa ] = get_target_spectrum(knownPer, selectionParams, indPer, r
 %                 targetSa.covReq  = target coveriance matrix for log Sa;
 %                 targetSa.stdevs  = target standard deviations for log Sa;
 
-% drop long periods from the calculation, due to inability of the GMPE to
-% evaluate these
-knownPer = knownPer(knownPer<=10);
 
 
 %% Compute target mean spectrum
