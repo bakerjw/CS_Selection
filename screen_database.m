@@ -1,4 +1,4 @@
-function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex ] = screen_database(selectionParams, databaseFile, allowedRecs )
+function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex ] = screen_database(selectionParams, allowedRecs )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,7 +6,7 @@ function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, ge
 %% Load the ground motion database and set up data matrices
 
 % load the specified database
-load(['Databases/' databaseFile]) 
+load(['Databases/' selectionParams.databaseFile]) 
 
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases
