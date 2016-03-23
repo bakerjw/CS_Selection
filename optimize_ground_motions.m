@@ -111,7 +111,7 @@ for k=1:selectionParams.nLoop % Number of passes
             end
             
             % Record should not be repeated
-            if (any(IMs.recID == j))
+            if (any(IMs.recID == j)) %%%%%%%%%%%%% this is checking the wrong set of records--correct this
                 devTotal(j) = 1000000;
             end
             sampleSmall = sampleSmall(1:end-1,:);
@@ -119,11 +119,7 @@ for k=1:selectionParams.nLoop % Number of passes
         
         [~ , minID] = min(devTotal);
         % Add new element in the right slot
-        if selectionParams.isScaled == 1
-            IMs.scaleFac(i) = scaleFac(minID);
-        else
-            IMs.scaleFac(i) = 1;
-        end
+        IMs.scaleFac(i) = scaleFac(minID);
         sampleSmall = [sampleSmall(1:i-1,:);IMs.sampleBig(minID,:)+log(scaleFac(minID));sampleSmall(i:end,:)];
         IMs.recID = [IMs.recID(1:i-1);minID;IMs.recID(i:end)];
     end
