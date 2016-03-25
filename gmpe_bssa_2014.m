@@ -7,7 +7,7 @@ function [median, sigma, period1] = gmpe_bssa_2014(M, T, Rjb, Fault_Type, region
 %
 % Boore, D. M., Stewart, J. P., Seyhan, E., and Atkinson, G. M. (2014). 
 % “NGA-West2 Equations for Predicting PGA, PGV, and 5% Damped PSA for 
-% Shallow Crustal Earthquakes.” Earthquake Spectra, 30(3), 1057–1085.
+% Shallow Crustal Earthquakes.” Earthquake Spectra, 30(3), 1057-1085.
 % http://www.earthquakespectra.org/doi/abs/10.1193/070113EQS184M
 %
 % Provides ground-mtion prediction equations for computing medians and

@@ -75,7 +75,7 @@ set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Compute sample correlations from selected spectra
 selectedSa = log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2)));
-selectedSa = [selectedSa(:,knownPer<selectionParams.T1) interp1(knownPer,selectedSa',selectionParams.T1)' selectedSa(:,knownPer>selectionParams.T1 & knownPer<=10)];
+selectedSa = [selectedSa(:,knownPer<selectionParams.Tcond) interp1(knownPer,selectedSa',selectionParams.Tcond)' selectedSa(:,knownPer>selectionParams.Tcond)];
 selectedCorr = corrcoef(selectedSa);
 
 % Calculate target correlations using the target covariance matrix
@@ -84,7 +84,7 @@ corrReq = targetSa.covAllT./(knownStdevs*knownStdevs');
 
 % Contours of correlations from selected spectra
 figure
-contour(knownPer(knownPer<=10), knownPer(knownPer<=10), selectedCorr);
+contour(knownPer, knownPer, selectedCorr);
 set(gca,'yscale','log','xscale','log');
 axis square;
 title('Sample correlation coefficients contour');
@@ -95,7 +95,7 @@ set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Contours of target correlations
 figure
-contour(knownPer(knownPer<=10), knownPer(knownPer<=10), corrReq(knownPer<=10, knownPer<=10));
+contour(knownPer, knownPer, corrReq);
 set(gca,'yscale','log','xscale','log');
 axis square;
 xlabel('T_1 (s)');
@@ -105,9 +105,9 @@ colorbar('YLim',[0 1]);
 set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Difference between target and sample correlations
-diffCorr = abs(selectedCorr-corrReq(knownPer<=10,knownPer<=10));
+diffCorr = abs(selectedCorr-corrReq);
 figure
-contour(knownPer(knownPer<=10),knownPer(knownPer<=10),diffCorr);
+contour(knownPer, knownPer,diffCorr);
 set(gca, 'yscale', 'log','xscale','log');
 axis square;
 title('abs(sample correlation - target correlation)');

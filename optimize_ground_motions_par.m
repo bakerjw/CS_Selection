@@ -64,10 +64,10 @@ for k=1:selectionParams.nLoop % Number of passes
     % sampleSmall and then recalculate new maximum percent errors of means
     % and standard deviations 
     if selectionParams.optType == 0
-        notT1 = find(selectionParams.PerTgt ~= selectionParams.PerTgt(selectionParams.rec));
+        notTcond = find(selectionParams.PerTgt ~= selectionParams.PerTgt(selectionParams.rec));
         stdevs = std(sampleSmall);
         meanErr = max(abs(exp(mean(sampleSmall))-targetSa.means)./targetSa.means)*100;
-        stdErr = max(abs(stdevs(notT1) - targetSa.stdevs(notT1))./targetSa.stdevs(notT1))*100;
+        stdErr = max(abs(stdevs(notTcond) - targetSa.stdevs(notTcond))./targetSa.stdevs(notTcond))*100;
         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
         fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
         

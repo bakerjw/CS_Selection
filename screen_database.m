@@ -1,12 +1,10 @@
-function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex ] = screen_database(selectionParams, databaseFile, allowedRecs )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex ] = screen_database(selectionParams, allowedRecs )
+% Load a database of ground motion data, and screen it to identify usable
+% ground motions for potential selection
 
-
-%% Load the ground motion database and set up data matrices
 
 % load the specified database
-load(['Databases/' databaseFile]) 
+load(['Databases/' selectionParams.databaseFile]) 
 
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases
@@ -35,12 +33,14 @@ else % two-component selection
 end
 
 %% Arrange available spectra in usable format and check for invalid values
-% Create variable for known periods
-knownPer = Periods; 
 
-% Modify TgtPer to include T1 if running a conditional selection
-if selectionParams.cond == 1 && ~any(selectionParams.TgtPer == selectionParams.T1)
-    selectionParams.TgtPer = sort([selectionParams.TgtPer selectionParams.T1]);
+% Create variable for known periods
+idxPer = find(Periods <= 10); % throw out periods > 10s, as they cause problems with the GMPE evaluation
+knownPer = Periods(idxPer); 
+
+% Modify TgtPer to include Tcond if running a conditional selection
+if selectionParams.cond == 1 && ~any(selectionParams.TgtPer == selectionParams.Tcond)
+    selectionParams.TgtPer = sort([selectionParams.TgtPer selectionParams.Tcond]);
 end
 
 % Match periods (known periods and target periods for error computations) 
@@ -55,8 +55,8 @@ end
 indPer = unique(indPer);
 selectionParams.TgtPer = knownPer(indPer);
 
-% Identify the index of T1 within TgtPer 
-[~, selectionParams.indT1] = min(abs(selectionParams.TgtPer - selectionParams.T1));
+% Identify the index of Tcond within TgtPer 
+[~, selectionParams.indTcond] = min(abs(selectionParams.TgtPer - selectionParams.Tcond));
 
 %% Screen the records to be considered
 recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
@@ -68,7 +68,7 @@ recValidDist = closest_D > allowedRecs.D(1)    & closest_D < allowedRecs.D(2);
 allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 
 % resize SaKnown to include only allowed records
-SaKnown = SaKnown(allowedIndex,:);       
+SaKnown = SaKnown(allowedIndex,idxPer);       
 
 % count number of allowed spectra
 selectionParams.nBig = length(allowedIndex);  
