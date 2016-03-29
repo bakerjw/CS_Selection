@@ -3,7 +3,7 @@ function [ IMs ] = find_ground_motions( selectionParams, simulatedSpectra, IMs )
 
 
 if selectionParams.cond == 1 
-    scaleFacIndex = selectionParams.indT1;
+    scaleFacIndex = selectionParams.indTcond;
 else
     scaleFacIndex = (1:length(selectionParams.TgtPer))';
 end
