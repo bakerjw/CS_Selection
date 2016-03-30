@@ -9,6 +9,7 @@ Nirmal Jayaram, Ting Lin, Jack W. Baker
 Department of Civil and Environmental Engineering
 Stanford University
 Last Updated: 27 March 2010
+Updated: March 31, 2016 to include Rjb
 
 Referenced manuscripts:
 
@@ -27,6 +28,7 @@ Filename_FP       : Filename of the fault parallel time history 				    data fil
 Filename_vert     : Filename of the vertical time history data 				    file
 Periods           : Periods at which spectral accelerations have 				    been
                     computed and stored in the workspace
+Rjb               : Joyner-Boore distance (km)
 Sa_1              : Spectral acceleration in direction 1
 Sa_2              : Spectral acceleration in direction 2
 Sa_FN             : Spectral acceleration in fault normal 					    direction
