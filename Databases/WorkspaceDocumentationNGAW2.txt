@@ -5,7 +5,8 @@ This workspace has been created based on the PEER NGA West 2 database ground mot
 Not all the variables available in the workspace may be required for the ground-motion selection. The minimum requirements have been documented in Select_Ground_Motions.m
 
 Nirmal Jayaram, Ting Lin, Jack W. Baker Department of Civil and Environmental Engineering Stanford University
-Last Updated: March 20, 2014 to use the NGA West 2 database
+Updated: March 20, 2014 to use the NGA West 2 database
+Updated: March 31, 2016 to include Rjb
  
 Downloading time histories for selected ground motions:
 
@@ -24,6 +25,7 @@ Filename_vert     : Filename of the vertical time history 					data file
 dirLocation       : Link to the NGA-W2 page
 Periods           : Periods at which spectral accelerations 				have been
                     computed and stored in the workspace
+Rjb               : Joyner-Boore distance (km)
 Sa_1              : Spectral acceleration in direction 1
 Sa_2              : Spectral acceleration in direction 2
 Sa_vert           : Spectral acceleration in vertical 						direction
