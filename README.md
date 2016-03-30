@@ -1,4 +1,4 @@
-# CS_Selection
+# Conditional Spectrum ground motion selection
 Software for selecting earthquake ground motions to match a target conditional spectrum
 
 This software can be used to select ground motions with a target response spectrum mean and covariance matrix. It improves upon an earlier algorithm by Jayaram et al. (2011).
@@ -15,7 +15,7 @@ Some potential features to be included in the future are:
 * Add metadata for additional ground motion databases as they become available
 * Modify the compute_scale_factor function to optionally use the approach of Ha and Han (2016), for better computational performance
 
-**References**
+##References
 
 Ha, S. J., and Han, S. W. (2016). “An efficient method for selecting and scaling ground motions matching target response spectrum mean and variance.” Earthquake Engineering & Structural Dynamics, (in press).
 
