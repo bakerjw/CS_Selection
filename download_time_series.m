@@ -5,7 +5,7 @@ function [  ] = download_time_series(outputDir, rec, Filename, dirLocation)
 
 
 % identify the relevant file format
-if ~isempty(strfind(dirLocation{1}{1},'nga_files')) %% NGA-West1 data
+if ~isempty(strfind(dirLocation{1},'nga_files')) %% NGA-West1 data
     formatFlag = 1;
     % check for number of ground motion components
     if size(Filename,2) == 1 % only one ground motion component
@@ -14,11 +14,11 @@ if ~isempty(strfind(dirLocation{1}{1},'nga_files')) %% NGA-West1 data
         nComp = 2;
     end
 
-elseif ~isempty(strfind(dirLocation{1}{1},'bbpvault')) %% BBP data
+elseif ~isempty(strfind(dirLocation{1},'bbpvault')) %% BBP data
     formatFlag = 2;
     nComp = 1; % there is only one file for multiple components
     
-elseif ~isempty(strfind(dirLocation{1}{1},'ngawest2')) %% NGA-West2 data
+elseif ~isempty(strfind(dirLocation{1},'ngawest2')) %% NGA-West2 data
     display('The software currently cannot download NGA-West2 data');
     return
 else
