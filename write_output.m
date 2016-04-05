@@ -1,9 +1,15 @@
-function [  ] = write_output( rec, IMs, outputFile, getTimeSeries, Filename, dirLocation)
+function [  ] = write_output(rec, IMs, outputDir, outputFile, getTimeSeries, Filename, dirLocation)
 % Write a tab-delimited file with selected ground motions and scale factors. 
 % For instructions on downloading the time histories, see the documentation
 % files for each database. 
 
-fin = fopen(outputFile,'w');
+% Create directory for outputs, if it doesn't yet exist
+if ~exist(outputDir, 'dir') 
+     mkdir(outputDir)
+end
+
+
+fin = fopen([outputDir '/' outputFile],'w');
 
 % print header information
 fprintf(fin, '%s \n \n', getTimeSeries{1}, getTimeSeries{2}, getTimeSeries{3});

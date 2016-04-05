@@ -16,6 +16,7 @@ Filename_1        : Filename of the time history data file in 				    direction 
 Filename_2        : Filename of the time history data file in 				    direction 2
 dirLocation       : Link to the appropriate SCEC ground motion 				    simulation results page
 Periods           : Periods at which spectral accelerations have 				    been computed and stored in the workspace
+Rjb               : Joyner-Boore distance (km)
 Sa_1              : Spectral acceleration in direction 1
 Sa_2              : Spectral acceleration in direction 2
 Sa_RotD100        : Orientation independent two-component 					    spectral acceleration
