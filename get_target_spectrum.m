@@ -98,13 +98,13 @@ for i=1:length(sa)
         
         % Covariances 
         if selectionParams.cond == 1 
-            sigmaCorr = baker_jayaram_correlation(Ti,Tj)*sqrt(var1*var2);
+            sigmaCorr = gmpe_bj_2008_corr(Ti,Tj)*sqrt(var1*var2);
             sigma11 = [var1 sigmaCorr;sigmaCorr var2];
-            sigma12 = [gmpe_bj_2008_corr(Ti, selectionParams.Tcond)*sqrt(var1*varT);baker_jayaram_correlation(selectionParams.Tcond, Tj)*sqrt(var2*varT)];
+            sigma12 = [gmpe_bj_2008_corr(Ti, selectionParams.Tcond)*sqrt(var1*varT);gmpe_bj_2008_corr(selectionParams.Tcond, Tj)*sqrt(var2*varT)];
             sigmaCond = sigma11 - sigma12*inv(sigma22)*(sigma12)';
             TgtCovs(i,j) = sigmaCond(1,2);
         elseif selectionParams.cond == 0
-            TgtCovs(i,j) = baker_jayaram_correlation(Ti, Tj)*sqrt(var1*var2);
+            TgtCovs(i,j) = gmpe_bj_2008_corr(Ti, Tj)*sqrt(var1*var2);
         end
     end
 end
