@@ -162,7 +162,8 @@ seedValue   = 1;        % =0 for random seed in when simulating
                         % otherwise the specifed seedValue is used.
 nTrials     = 20;       % number of iterations of the initial spectral 
                         % simulation step to perform
-outputFile  = 'Output_File.dat'; % File name of the output file
+outputDir  = 'Data';    % Location for output files
+outputFile  = 'Output_File.dat'; % File name of the summary output file
 
 % User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -212,4 +213,7 @@ end
 %% Output results to a text file 
 rec = allowedIndex(IMs.recID); % selected motions, as indixed in the original database
 
-write_output(rec, IMs, outputFile, getTimeSeries, Filename, dirLocation)
+write_output(rec, IMs, outputDir, outputFile, getTimeSeries, Filename, dirLocation)
+
+%% Copy time series to the working directory, if possible
+download_time_series(outputDir, rec, Filename, dirLocation)
