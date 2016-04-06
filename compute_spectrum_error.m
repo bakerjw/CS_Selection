@@ -15,8 +15,8 @@ if selectionParams.optType == 0
     
     % Penalize bad spectra (set penalty to zero if this is not required)
     if selectionParams.penalty ~= 0
-        for m=1:size(sampleSmall,1)
-            devTotal = devTotal + sum(abs(exp(sampleSmall(m,:))>exp(targetSa.meanReq+3*targetSa.stdevs'))) * selectionParams.penalty;
+        for m=1:size(sampleSmall,2) % for each period
+            devTotal = devTotal + sum(abs(exp(sampleSmall(:,m))>exp(targetSa.meanReq(m)+3*targetSa.stdevs(m)))) * selectionParams.penalty;
         end
     end
     

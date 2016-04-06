@@ -126,12 +126,12 @@ selectionParams.SaTcond    = 0.5;   % (optional) target Sa(Tcond) to use when
 % other parameters to scale motions and evaluate selections 
 selectionParams.isScaled   = 1;       
 selectionParams.maxScale   = 10;       
-selectionParams.tol        = 50; 
+selectionParams.tol        = 10; 
 selectionParams.optType    = 1; 
 selectionParams.penalty    = 0;
 selectionParams.weights    = [1.0 2.0 0.3];
 selectionParams.nLoop      = 2;
-selectionParams.useVar     = 1;   % =1 to use conditional spectrum variance, =0 to use a target variance of 0
+selectionParams.useVar     = 1;   % =1 to use computed variance, =0 to use a target variance of 0
 
 % User inputs to specify the target earthquake rupture scenario
 rup.M_bar       = 6.5;      % earthquake magnitude
