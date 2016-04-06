@@ -1,4 +1,4 @@
-function [rho] = gmpeBJ_2008_corr(T1, T2)
+function [rho] = gmpe_bj_2008_corr(T1, T2)
 
 % Created by Jack Baker, 2/28/07, updated 6/25/2007
 % Compute the correlation of epsilons for the NGA ground motion models
