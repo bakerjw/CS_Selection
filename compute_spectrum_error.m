@@ -8,8 +8,10 @@ function [ devTotal ] = compute_spectrum_error( selectionParams, targetSa, sampl
 if selectionParams.optType == 0
     if selectionParams.cond == 1 || (selectionParams.cond == 0 && selectionParams.isScaled == 0)
         % Compute deviations from target
-        devMean = mean(sampleSmall) - targetSa.meanReq;
-        devSig = std(sampleSmall) - targetSa.stdevs;
+        sampleMean = sum(sampleSmall)/size(sampleSmall,1);
+        sampleVar = sum((sampleSmall - ones(size(sampleSmall,1),1)*sampleMean).^2) / size(sampleSmall,1);
+        devMean = sampleMean - targetSa.meanReq;
+        devSig = sqrt(sampleVar) - targetSa.stdevs;
         devTotal = selectionParams.weights(1) * sum(devMean.^2) + selectionParams.weights(2) * sum(devSig.^2);
     end
     
