@@ -2,10 +2,17 @@ function [ IMs ] = optimize_ground_motions_par( selectionParams, targetSa, IMs )
 % Parallelized greedy optimization, for variable definitions, see
 % optimize_ground_motions(selectionParams, targetSa, IMs)
 
+% Note that launching the parallel pool takes some time on its own, so it
+% is typically only worth using this parallel code if there are large 
+% numbers of ground motions to select (i.e. over 100) 
+
+% Note also that this function is somewhat experimental. It has not been
+% optimized as completely as optimize_ground_motions.m, but it should
+% produce equivalent results.
+
 sampleSmall = IMs.sampleSmall;
 
-display('Please wait...This algorithm takes a few minutes depending on the number of records to be selected');
-if selectionParams.cond == 0
+if selectionParams.cond == 0 && selectionParams.isScaled
     display('The algorithm is slower when scaling is used');
 end
 if selectionParams.optType == 1
@@ -20,69 +27,52 @@ if selectionParams.optType == 1
     emp_cdf = linspace(0,1,selectionParams.nGM+1);
 end
 
-numWorkers = 2;
+numWorkers = 2; % specify the number of workers
 parobj = parpool(numWorkers);
 
-% Initialize scale factor vector
-scaleFac = ones(selectionParams.nBig,1);
-for k=1:selectionParams.nLoop % Number of passes
+% Initialize scale factor vectors if possible
+if selectionParams.isScaled == 0 % no scaling so set scale factors = 1
+    scaleFac = ones(selectionParams.nBig,1);
+    IMs.scaleFac = ones(selectionParams.nGM,1);
+elseif selectionParams.isScaled && selectionParams.cond % Sa(Tcond) scaling
+    scaleFac = exp(selectionParams.lnSa1)./exp(IMs.sampleBig(:,selectionParams.indTcond));
+end
     
+hw = waitbar(0,'Optimizing ground motion selection');
+
+for k=1:selectionParams.nLoop % Number of passes
     for i=1:selectionParams.nGM % Selects nGM ground motions
-        display([num2str(round(((k-1)*selectionParams.nGM + i-1)/(selectionParams.nLoop*selectionParams.nGM)*100)) '% done']);
         
         devTotal = zeros(selectionParams.nBig,1);
         sampleSmall(i,:) = [];
         IMs.recID(i,:) = [];
         
-        if selectionParams.isScaled == 1
-            if selectionParams.cond == 1
-                scaleFac = exp(selectionParams.lnSa1)./exp(IMs.sampleBig(:,selectionParams.rec));
-            elseif selectionParams.cond == 0
-                [scaleFac, devTotal] = bestScaleFactorPar(IMs.sampleBig, sampleSmall, targetSa.meanReq, targetSa.stdevs, selectionParams.weights, selectionParams.maxScale);
-            end
+        % if scaling with unconditional selection, compute scale factors
+        if selectionParams.isScaled && selectionParams.cond == 0
+            scaleFac = compute_scale_factor(IMs.sampleBig, sampleSmall, targetSa.meanReq, targetSa.stdevs, selectionParams.weights, selectionParams.maxScale);
         end
         
         % Try to add a new spectra to the subset list
         % new function 
-        [devTotal] = ParLoop(devTotal, scaleFac, selectionParams, sampleSmall, IMs.sampleBig, targetSa.meanReq,...
+        [devTotal] = ParLoop(devTotal, scaleFac, selectionParams, sampleSmall, IMs, targetSa.meanReq,...
                              targetSa.stdevs, emp_cdf);                                
                                 
-        [minDevFinal, minID] = min(devTotal);
+        [~, minID] = min(devTotal);
         % Add new element in the right slot
-        if selectionParams.isScaled == 1
-            IMs.scaleFac(i) = scaleFac(minID);
-        else
-            IMs.scaleFac(i) = 1;
-        end
-        sampleSmall = [sampleSmall(1:i-1,:);IMs.sampleBig(minID,:)+log(scaleFac(minID));sampleSmall(i:end,:)];
+        IMs.scaleFac(i) = scaleFac(minID);
         IMs.recID = [IMs.recID(1:i-1);minID;IMs.recID(i:end)];
+        sampleSmall = [sampleSmall(1:i-1,:);IMs.sampleBig(minID,:)+log(scaleFac(minID));sampleSmall(i:end,:)];
         
+        waitbar(((k-1)*selectionParams.nGM + i)/(selectionParams.nLoop*selectionParams.nGM)); % update waitbar
     end
     
-    % Can the optimization be stopped after this loop based on the user
-    % specified tolerance? Recalculate new standard deviations of new
-    % sampleSmall and then recalculate new maximum percent errors of means
-    % and standard deviations 
-    if selectionParams.optType == 0
-        notTcond = find(selectionParams.PerTgt ~= selectionParams.PerTgt(selectionParams.rec));
-        stdevs = std(sampleSmall);
-        meanErr = max(abs(exp(mean(sampleSmall))-targetSa.means)./targetSa.means)*100;
-        stdErr = max(abs(stdevs(notTcond) - targetSa.stdevs(notTcond))./targetSa.stdevs(notTcond))*100;
-        fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
-        fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
-        
-        % If error is now within the tolerance, break out of the
-        % optimization
-        if meanErr < selectionParams.tol && stdErr < selectionParams.tol
-            display('The percent errors between chosen and target spectra are now within the required tolerances.');
-            break;
-        end
-    end
-    
-    fprintf('End of loop %1.0f of %1.0f \n', k, selectionParams.nLoop) 
+    % check whether results are within tolerance, and stop optimization if so
+    if within_tolerance(sampleSmall, targetSa, selectionParams)
+        break;
+    end    
 end
 
-display('100% done');
+close(hw); % close waitbar
 
 % Save final selection for output
 IMs.sampleSmall = sampleSmall;
@@ -131,20 +121,21 @@ end
 
 
 
-function [ devTotal ] = ParLoop( devTotal, scaleFac, selectionParams, sampleSmall, sampleBig, meanReq, stdevs, emp_cdf )
+function [ devTotal ] = ParLoop( devTotal, scaleFac, selectionParams, sampleSmall, IMs, meanReq, stdevs, emp_cdf )
 % Parallel loop to use within greedy optimization
 optType = selectionParams.optType;
 if all(devTotal) && optType == 0 
     return;
 end
 
-PerTgt = selectionParams.PerTgt;
+TgtPer = selectionParams.TgtPer;
 cond = selectionParams.cond;
 isScaled = selectionParams.isScaled;
 weights = selectionParams.weights;
 penalty = selectionParams.penalty;
 maxScale = selectionParams.maxScale;
 recID = IMs.recID;
+sampleBig = IMs.sampleBig;
 
 
 
@@ -169,7 +160,7 @@ parfor j = 1:selectionParams.nBig
         end
         
     elseif optType == 1
-        [devTotal(j)] = KS_stat(PerTgt, emp_cdf, sampleSmallTemp, meanReq, stdevs);
+        [devTotal(j)] = KS_stat(TgtPer, emp_cdf, sampleSmallTemp, meanReq, stdevs);
     end
     
     % Scale factors for either type of optimization should not

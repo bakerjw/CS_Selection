@@ -159,7 +159,7 @@ allowedRecs.D    = [-Inf Inf];     % upper and lower bound of allowable distance
 showPlots   = 1;        % =1 to plot results, =0 to suppress plots
 copyFiles   = 0;        % =1 to copy selected motions to a local directory, 
                         % otherwise =0 to suppress plots
-seedValue   = 1;        % =0 for random seed in when simulating 
+seedValue   = 0;        % =0 for random seed in when simulating 
                         % response spectra for initial matching, 
                         % otherwise the specifed seedValue is used.
 nTrials     = 20;       % number of iterations of the initial spectral 

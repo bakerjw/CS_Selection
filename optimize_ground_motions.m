@@ -71,7 +71,7 @@ for k=1:selectionParams.nLoop % Number of passes
         sampleSmall(i,:) = []; % remove initially selected record to be replaced
         IMs.recID(i,:) = []; 
         
-        % scaling with unconditional selection, compute scale factors
+        % if scaling with unconditional selection, compute scale factors
         if selectionParams.isScaled && selectionParams.cond == 0
             scaleFac = compute_scale_factor(IMs.sampleBig, sampleSmall, targetSa.meanReq, targetSa.stdevs, selectionParams.weights, selectionParams.maxScale);
             % get indices of ground motions with allowable scale factors, for further consideration
@@ -102,24 +102,6 @@ for k=1:selectionParams.nLoop % Number of passes
     if within_tolerance(sampleSmall, targetSa, selectionParams)
         break;
     end
-    
-%     % Can the optimization be stopped after this loop based on the user
-%     % specified tolerance? Recalculate new means and standard deviations of
-%     % new sampleSmall and then recalculate new maximum percent errors of
-%     % means and standard deviations
-%     if selectionParams.optType == 0
-%         stdevs = std(sampleSmall);
-%         meanErr = max(abs(exp(mean(sampleSmall))- exp(targetSa.meanReq))./exp(targetSa.meanReq))*100;
-%         stdErr = max(abs(stdevs(1:end ~= selectionParams.indTcond) - targetSa.stdevs(1:end ~= selectionParams.indTcond))./targetSa.stdevs(1:end ~= selectionParams.indTcond))*100;
-%         fprintf('Max (across periods) error in median = %3.1f percent \n', meanErr); 
-%         fprintf('Max (across periods) error in standard deviation = %3.1f percent \n \n', stdErr);
-%         
-%         % If error is within the tolerance, break out of the optimization
-%         if meanErr < selectionParams.tol && stdErr < selectionParams.tol
-%             display('The percent errors between chosen and target spectra are now within the required tolerances.');
-%             break;
-%         end
-%     end    
 end
 
 close(hw); % close waitbar
