@@ -26,9 +26,9 @@ else % two-component selection
         SaKnown     = Sa_RotD100;
     else
         fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
-        % if data corresponding to user input RotD value does not exist,
-        % use the geometric mean of two single-component directions
-        SaKnown = sqrt(Sa_1.*Sa_2);
+        % If data corresponding to user input RotD value does not exist,
+        % optionally use the geometric mean of the single-component Sa's:
+        % SaKnown = sqrt(Sa_1.*Sa_2);
     end
 end
 
