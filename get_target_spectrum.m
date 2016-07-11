@@ -54,17 +54,17 @@ if selectionParams.RotD == 100 && selectionParams.arb == 2
    sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
-% back-calculate and epsilon to get the targe Sa(T_cond) if needed
-if ~isempty(selectionParams.SaTcond)
-    
+% back-calculate an epsilon to match the target Sa(T_cond), if Sa(T_cond)
+% is specified
+if ~isempty(selectionParams.SaTcond)   
     medianSaTcond = exp(interp1(log(knownPer), log(sa), log(selectionParams.Tcond))); % log-log interp to get median Sa
     sigmaSaTcond = exp(interp1(log(knownPer), log(sigma), log(selectionParams.Tcond))); % log-log interp to get median Sa
     eps_bar = (log(selectionParams.SaTcond) - log(medianSaTcond))/sigmaSaTcond;
     
     fprintf(['Back calculated epsilon = ' num2str(eps_bar,3) ' \n \n']); % output result for user verification
     
-else % use user-specified value
-    eps_bar = selectionParams.eps_bar;
+else % use user-specified epsilon value
+    eps_bar = rup.eps_bar;
 end
 
 % (Log) Response Spectrum Mean: TgtMean
