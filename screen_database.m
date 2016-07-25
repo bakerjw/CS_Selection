@@ -25,7 +25,7 @@ else % two-component selection
     elseif selectionParams.RotD == 100 && exist('Sa_RotD100')
         SaKnown     = Sa_RotD100;
     else
-        fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
+        display(['Error--RotD' num2str(RotD) ' not provided in database'])
         % If data corresponding to user input RotD value does not exist,
         % optionally use the geometric mean of the single-component Sa's:
         % SaKnown = sqrt(Sa_1.*Sa_2);
@@ -73,7 +73,7 @@ SaKnown = SaKnown(allowedIndex,idxPer);
 % count number of allowed spectra
 selectionParams.nBig = length(allowedIndex);  
 
-fprintf('Number of allowed ground motions = %i \n \n', selectionParams.nBig)
+display(['Number of allowed ground motions = ' num2str(selectionParams.nBig)])
 assert(selectionParams.nBig >= selectionParams.nGM, 'Warning: there are not enough allowable ground motions');
 
 

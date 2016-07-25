@@ -88,7 +88,7 @@ if ~isempty(selectionParams.SaTcond)
     sigmaSaTcond = exp(interp1(log(knownPer), log(sigma), log(selectionParams.Tcond))); % log-log interp to get median Sa
     eps_bar = (log(selectionParams.SaTcond) - log(medianSaTcond))/sigmaSaTcond;
     
-    fprintf(['Back calculated epsilon = ' num2str(eps_bar,3) ' \n \n']); % output result for user verification
+    display(['Back calculated epsilon = ' num2str(eps_bar,3)]); % output result for user verification
     
 else % use user-specified epsilon value
     eps_bar = rup.eps_bar;
