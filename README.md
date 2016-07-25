@@ -11,6 +11,7 @@ Lee, C., and Baker, J. W. (2016). “An Improved Algorithm for Selecting Ground 
 
 Some potential features to be included in the future are:
 * Generalize the get_target_spectrum.m function to compute targets for cases with multiple contributing earthquake sources and/or multiple ground motion prediction equations (see Lin et al. 2013)
+* Add a check in the optimization function to exit based on convergence of errors (rather than simply a check against a target error threshold)
 * Built a compiled C function to perform the optimization, as this is the computationally expensive portion of the procedure
 * Add metadata for additional ground motion databases as they become available
 * Modify the compute_scale_factor function to optionally use the approach of Ha and Han (2016), for better computational performance

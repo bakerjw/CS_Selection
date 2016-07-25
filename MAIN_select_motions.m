@@ -37,12 +37,11 @@
 %                         (note that the algorithm is slower when .isScaled
 %                         = 1)
 %           .maxScale   : The maximum allowable scale factor
-%           .tol        : Tolerable percent error to skip optimization (only
-%                         used for SSE optimization)
-%           .optType    : =0 to use the sum of squared errors to 
+%           .tol        : Tolerable error to skip optimization 
+%           .optType    : =0 to use squared errors to 
 %                         optimize the selected spectra, =1 to use 
 %                         D-statistic calculations from the KS-test
-%                         (note that the algorithm is slower when .optType
+%                         (the algorithm is slower when .optType
 %                         = 1)
 %           .penalty    : >0 to penalize selected spectra more than 
 %                         3 sigma from the target at any period, 
@@ -50,8 +49,6 @@
 %           .stdWeight  : if .optType==0, what fraction of the penalty is 
 %                         associated with standard deviation errors (value 
 %                         should be between 0 and 1).
-%           .dStatTol   : if .optType==1, what average d value is tolerable 
-%                         to exit the optimization
 %           .nLoop      : Number of loops of optimization to perform.
 %           .nBig       : The number of spectra that will be searched
 %           .indTcond   : Index of Tcond, the conditioning period
@@ -109,8 +106,8 @@
 
 %% User inputs begin here
 % Ground motion database and type of selection 
-% selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
-selectionParams.databaseFile    = 'BBP_GP_meta_data'; 
+selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
+% selectionParams.databaseFile    = 'BBP_GP_meta_data'; 
 selectionParams.cond            = 1;
 selectionParams.arb             = 2; 
 selectionParams.RotD            = 50; 
@@ -132,11 +129,10 @@ selectionParams.SaTcond    = 0.5;   % (optional) target Sa(Tcond) to use when
 % other parameters to scale motions and evaluate selections 
 selectionParams.isScaled   = 1;       
 selectionParams.maxScale   = 10;       
-selectionParams.tol        = 10; 
+selectionParams.tol        = 0.1; 
 selectionParams.optType    = 0; 
 selectionParams.penalty    = 0;
-selectionParams.stdWeight  = 0.2;
-selectionParams.dStatTol   = 0.05;
+selectionParams.stdWeight  = 0.4;
 selectionParams.nLoop      = 2;
 selectionParams.useVar     = 1;   % =1 to use computed variance, =0 to use a target variance of 0
 
@@ -214,7 +210,7 @@ if withinTol
 else % run optimization
     IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
     % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
-    [devTotal, withinTol] = compute_spectrum_error(selectionParams, targetSa, IMs.sampleSmall);
+    devTotal = compute_spectrum_error(selectionParams, targetSa, IMs.sampleSmall);
     display(['Final error metric is ' num2str(devTotal,2) ]);
 end
 

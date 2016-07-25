@@ -71,14 +71,12 @@ for k=1:selectionParams.nLoop % Number of passes
         % Try to add a new spectrum to the subset list
         devTotal = 1000000 * ones(selectionParams.nBig,1); % initialize to large errors, and recompute for allowable records
         for j = 1:length(idxAllow) 
-            
             if ~any(IMs.recID == idxAllow(j)) % if this candidate is not already in the set 
-                testSpectra = [sampleSmall; IMs.sampleBig(idxAllow(j),:)+log(scaleFac(idxAllow(j)))]; % add candidate to set
+                testSpectra = [sampleSmall; IMs.sampleBig(idxAllow(j),:)+log(scaleFac(idxAllow(j)))]; % add scaled candidate to the set
                 devTotal(idxAllow(j)) = compute_spectrum_error(selectionParams, targetSa, testSpectra);
-            end
-            
+            end            
         end
-        
+        min(devTotal)
         [~ , minID] = min(devTotal);
         % Add new element in the right slot
         IMs.scaleFac(i) = scaleFac(minID);
@@ -93,13 +91,14 @@ for k=1:selectionParams.nLoop % Number of passes
         display(['Error metric of ' num2str(devTotal,2) 'is within tolerance, stopping optimization']);
         break;
     end
+    devTotalinternal = compute_spectrum_error(selectionParams, targetSa, sampleSmall)
+
 end
 
 close(hw); % close waitbar
 
-% Save final selection for output
+% Save final selected set for output
 IMs.sampleSmall = sampleSmall;
-
 
 end
 
