@@ -8,6 +8,9 @@ else
     rng('shuffle');
 end
 
+% check that the weight on the standard deviation penalty is acceptable
+assert( (selectionParams.stdWeight>=0) && (selectionParams.stdWeight<=1), 'selectionParams.stdWeight should be between 0 and 1')
+
 % Generate simulated response spectra with best matches to the target values
 devTotalSim = zeros(nTrials,1);
 for j=1:nTrials
@@ -17,9 +20,8 @@ for j=1:nTrials
     sampleMeanErr = mean(log(spectraSample{j})) - targetSa.meanReq; % how close is the mean of the spectra to the target
     sampleStdErr = std(log(spectraSample{j})) - sqrt(diag(targetSa.covReq))'; % how close is the standard dev. of the spectra to the target
     sampleSkewnessErr = skewness(log(spectraSample{j}),1); % how close is the skewness of the spectra to zero (i.e., the target)
-    devTotalSim(j) = selectionParams.weights(1) * sum(sampleMeanErr.^2) + ...
-                     selectionParams.weights(2) * sum(sampleStdErr.^2)+ ...
-                     selectionParams.weights(3) * sum(sampleSkewnessErr.^2); % combine the three error metrics to compute a total error
+    devTotalSim(j) = (1-selectionParams.stdWeight) * sum(sampleMeanErr.^2) + ...
+                        selectionParams.stdWeight *  sum(sampleStdErr.^2); % compute a total error
 end
 
 [~, bestSample] = min(devTotalSim); % find the simulated spectra that best match the targets 

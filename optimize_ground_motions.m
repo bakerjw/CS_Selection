@@ -40,27 +40,17 @@ function [ IMs ] = optimize_ground_motions( selectionParams, targetSa, IMs )
 %                          searched
 
 
-% sampleSmall changes size throughout the optimization. Redfine sampleSmall
-% here. sampleSmall is returned as a new variable, not within IMs
+% make a working copy of IMs.sampleSmall, which will be modified while the 
+% optimization is ongoing 
 sampleSmall = IMs.sampleSmall;
 
-if selectionParams.cond == 0 && selectionParams.isScaled
-    display('The algorithm is slower when scaling is used');
-end
-if selectionParams.optType == 1
-    display('The algorithm is slower when optimizing with the KS-test Dn statistic');
-end
-
-
-% Initialize scale factor vectors if possible
-
+% Initialize scale factor vectors
 if selectionParams.isScaled == 0 % no scaling so set scale factors = 1
     scaleFac = ones(selectionParams.nBig,1);
     IMs.scaleFac = ones(selectionParams.nGM,1);
 elseif selectionParams.isScaled && selectionParams.cond % Sa(Tcond) scaling
     scaleFac = exp(selectionParams.lnSa1)./exp(IMs.sampleBig(:,selectionParams.indTcond));
-    % get indices of ground motions with allowable scale factors, for further consideration
-    idxAllow = find(scaleFac < selectionParams.maxScale);
+    idxAllow = find(scaleFac < selectionParams.maxScale); % indices of ground motions with allowable scale factors
 end
 
 hw = waitbar(0,'Optimizing ground motion selection');
@@ -98,8 +88,9 @@ for k=1:selectionParams.nLoop % Number of passes
         waitbar(((k-1)*selectionParams.nGM + i)/(selectionParams.nLoop*selectionParams.nGM)); % update waitbar
     end
     
-    % check whether results are within tolerance, and stop optimization if so
-    if within_tolerance(sampleSmall, targetSa, selectionParams)
+    [devTotal, withinTol] = compute_spectrum_error(selectionParams, targetSa, sampleSmall); % check whether results are within tolerance
+    if withinTol % stop optimization if within tolerance
+        display(['Error metric of ' num2str(devTotal,2) 'is within tolerance, stopping optimization']);
         break;
     end
 end

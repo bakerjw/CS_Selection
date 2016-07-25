@@ -33,19 +33,25 @@
 %                         2 for two-component selection and average component sigma
 %           .RotD       : 50 to use SaRotD50 data
 %                       : 100 to use SaRotD100 data
-%           .isScaled   : =1 to allow records to be 
-%                         scaled, =0 otherwise 
+%           .isScaled   : =1 to allow records to be scaled, =0 otherwise 
+%                         (note that the algorithm is slower when .isScaled
+%                         = 1)
 %           .maxScale   : The maximum allowable scale factor
 %           .tol        : Tolerable percent error to skip optimization (only
 %                         used for SSE optimization)
 %           .optType    : =0 to use the sum of squared errors to 
 %                         optimize the selected spectra, =1 to use 
 %                         D-statistic calculations from the KS-test
+%                         (note that the algorithm is slower when .optType
+%                         = 1)
 %           .penalty    : >0 to penalize selected spectra more than 
 %                         3 sigma from the target at any period, 
 %                         =0 otherwise.
-%          . weights    : [Weights for error in mean, standard deviation 
-%                         and skewness] e.g., [1.0,2.0 0.3] 
+%           .stdWeight  : if .optType==0, what fraction of the penalty is 
+%                         associated with standard deviation errors (value 
+%                         should be between 0 and 1).
+%           .dStatTol   : if .optType==1, what average d value is tolerable 
+%                         to exit the optimization
 %           .nLoop      : Number of loops of optimization to perform.
 %           .nBig       : The number of spectra that will be searched
 %           .indTcond   : Index of Tcond, the conditioning period
@@ -127,9 +133,10 @@ selectionParams.SaTcond    = 0.5;   % (optional) target Sa(Tcond) to use when
 selectionParams.isScaled   = 1;       
 selectionParams.maxScale   = 10;       
 selectionParams.tol        = 10; 
-selectionParams.optType    = 1; 
+selectionParams.optType    = 0; 
 selectionParams.penalty    = 0;
-selectionParams.weights    = [1.0 2.0 0.3];
+selectionParams.stdWeight  = 0.2;
+selectionParams.dStatTol   = 0.05;
 selectionParams.nLoop      = 2;
 selectionParams.useVar     = 1;   % =1 to use computed variance, =0 to use a target variance of 0
 
@@ -200,12 +207,17 @@ IMs.stageOneStdevs= std(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,
 %% Further optimize the ground motion selection, if needed
 
 % check errors versus tolerances to see whether optimization is needed
-if within_tolerance(IMs.sampleSmall, targetSa, selectionParams)
-    fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
+[devTotal, withinTol] = compute_spectrum_error(selectionParams, targetSa, IMs.sampleSmall);
+display(['Pre-optimization error metric is ' num2str(devTotal,2) ]);
+if withinTol
+    display(['Error metric of ' num2str(devTotal,2) ' is within tolerance, skipping optimization']);
 else % run optimization
     IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
     % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
+    [devTotal, withinTol] = compute_spectrum_error(selectionParams, targetSa, IMs.sampleSmall);
+    display(['Final error metric is ' num2str(devTotal,2) ]);
 end
+
 
 %% Plot results, if desired
 if showPlots
