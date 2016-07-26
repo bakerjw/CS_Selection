@@ -1,4 +1,4 @@
-function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex ] = screen_database(selectionParams, allowedRecs )
+function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex, compNum ] = screen_database(selectionParams, allowedRecs )
 % Load a database of ground motion data, and screen it to identify usable
 % ground motions for potential selection
 
@@ -13,6 +13,7 @@ load(['Databases/' selectionParams.databaseFile])
 % database file. See documentation for more details.
 if selectionParams.arb == 1 % single-component selection -- treat each component as a seaparate candidate
     Filename    = [Filename_1; Filename_2];
+    compNum     = [ones(size(magnitude)); 2*ones(size(magnitude))];
     SaKnown     = [Sa_1; Sa_2]; 
     soil_Vs30   = [soil_Vs30; soil_Vs30]; 
     magnitude   = [magnitude; magnitude]; 
@@ -25,10 +26,10 @@ else % two-component selection
     elseif selectionParams.RotD == 100 && exist('Sa_RotD100')
         SaKnown     = Sa_RotD100;
     else
-        fprintf(['Error--RotD' num2str(RotD) ' not provided in database \n\n'])
-        % if data corresponding to user input RotD value does not exist,
-        % use the geometric mean of two single-component directions
-        SaKnown = sqrt(Sa_1.*Sa_2);
+        display(['Error--RotD' num2str(RotD) ' not provided in database'])
+        % If data corresponding to user input RotD value does not exist,
+        % optionally use the geometric mean of the single-component Sa's:
+        % SaKnown = sqrt(Sa_1.*Sa_2);
     end
 end
 
@@ -73,7 +74,7 @@ SaKnown = SaKnown(allowedIndex,idxPer);
 % count number of allowed spectra
 selectionParams.nBig = length(allowedIndex);  
 
-fprintf('Number of allowed ground motions = %i \n \n', selectionParams.nBig)
+display(['Number of allowed ground motions = ' num2str(selectionParams.nBig)])
 assert(selectionParams.nBig >= selectionParams.nGM, 'Warning: there are not enough allowable ground motions');
 
 

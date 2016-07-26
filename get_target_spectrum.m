@@ -6,14 +6,41 @@ function [ targetSa ] = get_target_spectrum(knownPer, selectionParams, indPer, r
 % input arguments will likely also need to be adjusted
 %
 % INPUTS
-%           RotD            : =50 or =100
-%           arb             : =1 for single-component or =2 for two-component
 %           knownPer        : available periods from the database
 %           indPer          : period indicies of target response spectrum
-%           useVar          : user input for calculating variance
 %           eps_bar         : user input for epsilon (conditional
 %                             selection)
-%           selectionParams : optimization user inputs 
+% 
+%           selectionParams : parameters controlling how the ground motion 
+%                             selection is performed
+%               .databaseFile : filename of the target database. This file should exist
+%                               in the 'Databases' subfolder. Further documentation of
+%                               these databases can be found at
+%                               'Databases/WorkspaceDocumentation***.txt'.
+%               .cond         : 0 to run unconditional selection
+%                               1 to run conditional
+%               .arb          : 1 for single-component selection and arbitrary component sigma
+%                               2 for two-component selection and average component sigma
+%               .RotD         : 50 to use SaRotD50 data
+%                             : 100 to use SaRotD100 data
+%               .isScaled     : =1 to allow records to be
+%                               scaled, =0 otherwise
+%               .maxScale     : The maximum allowable scale factor
+%               .tol          : Tolerable percent error to skip optimization (only
+%                               used for SSE optimization)
+%               .optType      : =0 to use the sum of squared errors to
+%                               optimize the selected spectra, =1 to use
+%                               D-statistic calculations from the KS-test
+%               .penalty      : >0 to penalize selected spectra more than
+%                               3 sigma from the target at any period,
+%                               =0 otherwise.
+%               . weights     : [Weights for error in mean, standard deviation
+%                               and skewness] e.g., [1.0,2.0 0.3]
+%               .nLoop        : Number of loops of optimization to perform.
+%               .nBig         : The number of spectra that will be searched
+%               .indTcond     : Index of Tcond, the conditioning period
+%               .recID        : Vector of index values for the selected
+%                               spectra
 %
 %           rup             :  A structure with parameters that specify the rupture scenario
 %                              for the purpose of evaluating a GMPE
@@ -54,17 +81,17 @@ if selectionParams.RotD == 100 && selectionParams.arb == 2
    sigma = sqrt ( sigma.^2 + rotD100Sigma .^2); 
 end
 
-% back-calculate and epsilon to get the targe Sa(T_cond) if needed
-if ~isempty(selectionParams.SaTcond)
-    
+% back-calculate an epsilon to match the target Sa(T_cond), if Sa(T_cond)
+% is specified
+if ~isempty(selectionParams.SaTcond)   
     medianSaTcond = exp(interp1(log(knownPer), log(sa), log(selectionParams.Tcond))); % log-log interp to get median Sa
     sigmaSaTcond = exp(interp1(log(knownPer), log(sigma), log(selectionParams.Tcond))); % log-log interp to get median Sa
     eps_bar = (log(selectionParams.SaTcond) - log(medianSaTcond))/sigmaSaTcond;
     
-    fprintf(['Back calculated epsilon = ' num2str(eps_bar,3) ' \n \n']); % output result for user verification
+    display(['Back calculated epsilon = ' num2str(eps_bar,3)]); % output result for user verification
     
-else % use user-specified value
-    eps_bar = selectionParams.eps_bar;
+else % use user-specified epsilon value
+    eps_bar = rup.eps_bar;
 end
 
 % (Log) Response Spectrum Mean: TgtMean
