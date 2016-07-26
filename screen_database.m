@@ -6,6 +6,7 @@ function [ SaKnown, selectionParams, indPer, knownPer, metadata ] = screen_datab
 % load the specified database
 load(['Databases/' selectionParams.databaseFile]) 
 metadata.getTimeSeries = getTimeSeries;
+metadata.dirLocation = dirLocation;
 
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases

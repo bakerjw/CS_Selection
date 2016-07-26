@@ -218,7 +218,7 @@ end
 %% Output results to a text file 
 recIdx = metadata.allowedIndex(IMs.recID); % selected motions, as indixed in the original database
 
-write_output(recIdx, recNum, IMs, outputDir, outputFile, dirLocation, metadata)
+write_output(recIdx, IMs, outputDir, outputFile, metadata)
 
 %% Copy time series to the working directory, if desired and possible
 if copyFiles
