@@ -176,7 +176,7 @@ outputFile  = 'Output_File.dat'; % File name of the summary output file
 selectionParams.TgtPer = logspace(log10(selectionParams.Tmin),log10(selectionParams.Tmax),30); % compute an array of periods between Tmin and Tmax
 
 % Load and screen the database
-[SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex, compNum] = screen_database(selectionParams, allowedRecs );
+[SaKnown, selectionParams, indPer, knownPer, metadata] = screen_database(selectionParams, allowedRecs );
 
 IMs.sampleBig = log(SaKnown(:,indPer));  % save the logarithmic spectral accelerations at target periods
 
@@ -216,11 +216,11 @@ if showPlots
 end
  
 %% Output results to a text file 
-rec = allowedIndex(IMs.recID); % selected motions, as indixed in the original database
+recIdx = metadata.allowedIndex(IMs.recID); % selected motions, as indixed in the original database
 
-write_output(rec, IMs, outputDir, outputFile, getTimeSeries, Filename, dirLocation, compNum)
+write_output(recIdx, recNum, IMs, outputDir, outputFile, dirLocation, metadata)
 
 %% Copy time series to the working directory, if desired and possible
 if copyFiles
-    download_time_series(outputDir, rec, Filename, dirLocation)
+    download_time_series(outputDir, recIdx, Filename, dirLocation)
 end

@@ -1,10 +1,11 @@
-function [ SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex, compNum ] = screen_database(selectionParams, allowedRecs )
+function [ SaKnown, selectionParams, indPer, knownPer, metadata ] = screen_database(selectionParams, allowedRecs )
 % Load a database of ground motion data, and screen it to identify usable
 % ground motions for potential selection
 
 
 % load the specified database
 load(['Databases/' selectionParams.databaseFile]) 
+metadata.getTimeSeries = getTimeSeries;
 
 % Format appropriate ground motion metadata variables for single or two-
 % component selection. Additional metadata is available in the databases
@@ -12,15 +13,18 @@ load(['Databases/' selectionParams.databaseFile])
 % Note: These lines should be modified if using the BBP_EXSIM_meta_data.mat
 % database file. See documentation for more details.
 if selectionParams.arb == 1 % single-component selection -- treat each component as a seaparate candidate
-    Filename    = [Filename_1; Filename_2];
-    compNum     = [ones(size(magnitude)); 2*ones(size(magnitude))];
+    metadata.Filename    = [Filename_1; Filename_2];
+    metadata.compNum     = [ones(size(magnitude)); 2*ones(size(magnitude))];
+    metadata.recNum      = [1:length(magnitude) 1:length(magnitude)]';
     SaKnown     = [Sa_1; Sa_2]; 
     soil_Vs30   = [soil_Vs30; soil_Vs30]; 
     magnitude   = [magnitude; magnitude]; 
     closest_D   = [closest_D; closest_D]; 
-    dirLocation = [dirLocation; dirLocation];
+    metadata.dirLocation = [dirLocation; dirLocation];
 else % two-component selection
-    Filename    = [Filename_1 Filename_2];
+    metadata.Filename    = [Filename_1 Filename_2];
+    metadata.dirLocation = dirLocation;
+    metadata.recNum      = [1:length(magnitude)];
     if selectionParams.RotD == 50 && exist('Sa_RotD50')
         SaKnown     = Sa_RotD50;
     elseif selectionParams.RotD == 100 && exist('Sa_RotD100')
@@ -66,13 +70,13 @@ recValidMag =  magnitude > allowedRecs.Mag(1)  & magnitude < allowedRecs.Mag(2);
 recValidDist = closest_D > allowedRecs.D(1)    & closest_D < allowedRecs.D(2);
 
 % flag indicies of allowable records that will be searched
-allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
+metadata.allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
 
 % resize SaKnown to include only allowed records
-SaKnown = SaKnown(allowedIndex,idxPer);       
+SaKnown = SaKnown(metadata.allowedIndex,idxPer);       
 
 % count number of allowed spectra
-selectionParams.nBig = length(allowedIndex);  
+selectionParams.nBig = length(metadata.allowedIndex);  
 
 display(['Number of allowed ground motions = ' num2str(selectionParams.nBig)])
 assert(selectionParams.nBig >= selectionParams.nGM, 'Warning: there are not enough allowable ground motions');
