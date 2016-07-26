@@ -7,7 +7,7 @@
 % ground motion databases are provided to search in. Further details are
 % provided in the following documents:
 %
-%   Lee, C. and Baker, J.W. (2016). An Improved Algorithm for Selecting 
+%   Baker, J.W. and Lee, C. (2016). An Improved Algorithm for Selecting 
 %   Ground Motions to Match a Conditional Spectrum, Journal of Earthquake 
 %   Engineering, (in review).
 %
@@ -33,14 +33,16 @@
 %                         2 for two-component selection and average component sigma
 %           .RotD       : 50 to use SaRotD50 data
 %                       : 100 to use SaRotD100 data
-%           .isScaled   : =1 to allow records to be 
-%                         scaled, =0 otherwise 
+%           .isScaled   : =1 to allow records to be scaled, =0 otherwise 
+%                         (note that the algorithm is slower when .isScaled
+%                         = 1)
 %           .maxScale   : The maximum allowable scale factor
-%           .tol        : Tolerable percent error to skip optimization (only
-%                         used for SSE optimization)
+%           .tol        : Tolerable percent error to skip optimization 
 %           .optType    : =0 to use the sum of squared errors to 
 %                         optimize the selected spectra, =1 to use 
 %                         D-statistic calculations from the KS-test
+%                         (the algorithm is slower when .optType
+%                         = 1)
 %           .penalty    : >0 to penalize selected spectra more than 
 %                         3 sigma from the target at any period, 
 %                         =0 otherwise.
@@ -115,7 +117,7 @@ selectionParams.Tcond      = 1.5; % Period at which spectra should be scaled and
 selectionParams.Tmin       = 0.1; % smallest spectral period of interest
 selectionParams.Tmax       = 10;  % largest spectral period of interest
 
-selectionParams.SaTcond    = 0.5;   % (optional) target Sa(Tcond) to use when 
+selectionParams.SaTcond    = 0.3;   % (optional) target Sa(Tcond) to use when 
                                   % computing a conditional spectrum 
                                   % if a value is provided here, rup.eps_bar 
                                   % will be back-computed in
@@ -125,9 +127,9 @@ selectionParams.SaTcond    = 0.5;   % (optional) target Sa(Tcond) to use when
 
 % other parameters to scale motions and evaluate selections 
 selectionParams.isScaled   = 1;       
-selectionParams.maxScale   = 10;       
+selectionParams.maxScale   = 5;       
 selectionParams.tol        = 10; 
-selectionParams.optType    = 1; 
+selectionParams.optType    = 0; 
 selectionParams.penalty    = 0;
 selectionParams.weights    = [1.0 2.0 0.3];
 selectionParams.nLoop      = 2;
@@ -152,8 +154,8 @@ rup.Fault_Type  = 1;        % =0 for unspecified fault
                         
 % Ground motion properties to require when selecting from the database. 
 allowedRecs.Vs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
-allowedRecs.Mag  = [ 6.3 6.7];     % upper and lower bound of allowable magnitude values
-allowedRecs.D    = [-Inf Inf];     % upper and lower bound of allowable distance values
+allowedRecs.Mag  = [ 6 7 ];     % upper and lower bound of allowable magnitude values
+allowedRecs.D    = [0 50];     % upper and lower bound of allowable distance values
 
 % Miscellaneous other inputs
 showPlots   = 1;        % =1 to plot results, =0 to suppress plots
@@ -174,7 +176,7 @@ outputFile  = 'Output_File.dat'; % File name of the summary output file
 selectionParams.TgtPer = logspace(log10(selectionParams.Tmin),log10(selectionParams.Tmax),30); % compute an array of periods between Tmin and Tmax
 
 % Load and screen the database
-[SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex] = screen_database(selectionParams, allowedRecs );
+[SaKnown, selectionParams, indPer, knownPer, Filename, dirLocation, getTimeSeries, allowedIndex, compNum] = screen_database(selectionParams, allowedRecs );
 
 IMs.sampleBig = log(SaKnown(:,indPer));  % save the logarithmic spectral accelerations at target periods
 
@@ -202,6 +204,7 @@ IMs.stageOneStdevs= std(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,
 % check errors versus tolerances to see whether optimization is needed
 if within_tolerance(IMs.sampleSmall, targetSa, selectionParams)
     fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
+    display(['Error metric of ' num2str(devTotal,2) ' is within tolerance, skipping optimization']);
 else % run optimization
     IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
     % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
@@ -215,7 +218,7 @@ end
 %% Output results to a text file 
 rec = allowedIndex(IMs.recID); % selected motions, as indixed in the original database
 
-write_output(rec, IMs, outputDir, outputFile, getTimeSeries, Filename, dirLocation)
+write_output(rec, IMs, outputDir, outputFile, getTimeSeries, Filename, dirLocation, compNum)
 
 %% Copy time series to the working directory, if desired and possible
 if copyFiles
