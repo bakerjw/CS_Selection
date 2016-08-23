@@ -14,14 +14,22 @@ metadata.dirLocation = dirLocation;
 % Note: These lines should be modified if using the BBP_EXSIM_meta_data.mat
 % database file. See documentation for more details.
 if selectionParams.arb == 1 % single-component selection -- treat each component as a seaparate candidate
-    metadata.Filename    = [Filename_1; Filename_2];
-    metadata.compNum     = [ones(size(magnitude)); 2*ones(size(magnitude))];
-    metadata.recNum      = [1:length(magnitude) 1:length(magnitude)]';
-    SaKnown     = [Sa_1; Sa_2]; 
-    soil_Vs30   = [soil_Vs30; soil_Vs30]; 
-    magnitude   = [magnitude; magnitude]; 
-    closest_D   = [closest_D; closest_D]; 
-    metadata.dirLocation = [dirLocation; dirLocation];
+    if isempty(Sa_2) % if 2nd component doesn't exist (e.g., EXSIM data)
+        metadata.Filename    = Filename_1;
+        metadata.compNum     = [ones(size(magnitude))];
+        metadata.dirLocation = dirLocation;
+        metadata.recNum      = [1:length(magnitude)];
+        SaKnown              = Sa_1;
+    else % 2nd component exists
+        metadata.Filename    = [Filename_1; Filename_2];
+        metadata.compNum     = [ones(size(magnitude)); 2*ones(size(magnitude))];
+        metadata.recNum      = [1:length(magnitude) 1:length(magnitude)]';
+        SaKnown     = [Sa_1; Sa_2];
+        soil_Vs30   = [soil_Vs30; soil_Vs30];
+        magnitude   = [magnitude; magnitude];
+        closest_D   = [closest_D; closest_D];
+        metadata.dirLocation = [dirLocation; dirLocation];
+    end
 else % two-component selection
     metadata.Filename    = [Filename_1 Filename_2];
     metadata.dirLocation = dirLocation;
