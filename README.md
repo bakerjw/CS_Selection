@@ -5,7 +5,7 @@ This software can be used to select ground motions with a target response spectr
 
 Further documentation can be found in the following paper:
 
-Baker, J. W. and Lee, C. (2016). “An Improved Algorithm for Selecting Ground Motions to Match a Conditional Spectrum.” (in review).
+Baker, J. W. and Lee, C. (2016). “An Improved Algorithm for Selecting Ground Motions to Match a Conditional Spectrum.” Journal of Earthquake Engineering (in press).
 
 
 
