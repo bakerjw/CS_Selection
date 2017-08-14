@@ -15,7 +15,11 @@ Some potential features to be included in the future are:
 * Add metadata for additional ground motion databases as they become available
 * Modify the compute_scale_factor function to optionally use the approach of Ha and Han (2016), for better computational performance
 
-##References
+Known issues:
+* As of July 2016, PEER has stopped providing the time series for the NGA-West1 database, so the URLs provided from this software are no longer usable.
+* The NGA-West2 database includes spectra for some ground motions that are not provided by PEER's online tool (e.g., ground motions from the Wenchuan earthquake)
+
+#References
 
 Ha, S. J., and Han, S. W. (2016). “An efficient method for selecting and scaling ground motions matching target response spectrum mean and variance.” Earthquake Engineering & Structural Dynamics, (in press).
 
