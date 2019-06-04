@@ -5,7 +5,7 @@ This software can be used to select ground motions with a target response spectr
 
 Further documentation can be found in the following paper:
 
-Baker, J. W. and Lee, C. (2016). “An Improved Algorithm for Selecting Ground Motions to Match a Conditional Spectrum.” Journal of Earthquake Engineering (in press).
+Baker, J. W., and Lee, C. (2018). “An Improved Algorithm for Selecting Ground Motions to Match a Conditional Spectrum.” Journal of Earthquake Engineering, 22(4), 708–723.
 
 
 
@@ -21,9 +21,9 @@ Baker, J. W. and Lee, C. (2016). “An Improved Algorithm for Selecting Ground M
 
 ## References
 
-Ha, S. J., and Han, S. W. (2016). “An efficient method for selecting and scaling ground motions matching target response spectrum mean and variance.” Earthquake Engineering & Structural Dynamics, (in press).
+Ha, S. J., and Han, S. W. (2016). “An efficient method for selecting and scaling ground motions matching target response spectrum mean and variance.” Earthquake Engineering & Structural Dynamics, 45(8), 1381–1387.
 
-Jayaram, N., Lin, T., and Baker, J. W. (2011). "A computationally efficient ground-motion selection algorithm for matching a target response spectrum mean and variance." Earthquake Spectra, 27(3), 797?815.
+Jayaram, N., Lin, T., and Baker, J. W. (2011). "A computationally efficient ground-motion selection algorithm for matching a target response spectrum mean and variance." Earthquake Spectra, 27(3), 797-815.
 
-Lin, T., Harmsen, S. C., Baker, J. W., and Luco, N. (2013). "Conditional Spectrum Computation Incorporating Multiple Causal Earthquakes and Ground Motion Prediction Models." Bulletin of the Seismological Society of America, 103(2A), 1103?1116.
+Lin, T., Harmsen, S. C., Baker, J. W., and Luco, N. (2013). "Conditional Spectrum Computation Incorporating Multiple Causal Earthquakes and Ground Motion Prediction Models." Bulletin of the Seismological Society of America, 103(2A), 1103-1116.
 
