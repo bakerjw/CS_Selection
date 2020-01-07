@@ -137,7 +137,7 @@ selectionParams.SaTcond    = 0.3;   % (optional) target Sa(Tcond) to use when
                                   % rup.eps_bar value specified below will
                                   % be used
 
-% Parameters related to (optional) selection vertical spectra
+% Parameters related to (optional) selection of vertical spectra
 selectionParams.matchV          = 1; % =1 to do selection and scaling while matching a vertical spectrum, =0 to not
 selectionParams.TminV           = 0.01; % smallest vertical spectral period of interest
 selectionParams.TmaxV           = 10;  % largest vertical spectral period of interest
@@ -210,7 +210,8 @@ outputFile  = 'Output_File.dat'; % File name of the summary output file
 % Load and screen the database
 [SaKnown, selectionParams, indPer, knownPer, metadata] = screen_database(selectionParams, allowedRecs );
 
-IMs.sampleBig = log(SaKnown(:,indPer));  % save the logarithmic spectral accelerations at target periods
+% Save the logarithmic spectral accelerations at target periods
+IMs.sampleBig = log(SaKnown(:,indPer));  
 
 %% Compute target means and covariances of spectral values 
 
