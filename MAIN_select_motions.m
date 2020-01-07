@@ -129,7 +129,7 @@ selectionParams.Tcond      = 1.5; % Period at which spectra should be scaled and
 selectionParams.Tmin       = 0.1; % smallest spectral period of interest
 selectionParams.Tmax       = 10;  % largest spectral period of interest
 selectionParams.TgtPer = logspace(log10(selectionParams.Tmin),log10(selectionParams.Tmax),30); % compute an array of periods between Tmin and Tmax
-selectionParams.SaTcond    = 0.3;   % (optional) target Sa(Tcond) to use when 
+selectionParams.SaTcond    = [];   % (optional) target Sa(Tcond) to use when 
                                   % computing a conditional spectrum 
                                   % if a value is provided here, rup.eps_bar 
                                   % will be back-computed in
@@ -218,7 +218,6 @@ if selectionParams.matchV == 1
 end
 
 %% Compute target means and covariances of spectral values 
-
 % Compute target mean and covariance at all periods in the database
 targetSa = get_target_spectrum(knownPer, selectionParams, indPer, rup);
                                                                            

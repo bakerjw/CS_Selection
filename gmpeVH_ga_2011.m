@@ -1,5 +1,5 @@
 %% Function implementing GMPM by Gulerce and Abrahamson 2011
-function [Y, sig_lnY, sig_0, tau_0] = gmpeVH_ga_2011(M, Rrup, Vs30, FRV, FNM, T)
+function [Y_vec, sig_lnY_vec, sig_0_vec, tau_0_vec] = gmpeVH_ga_2011(M, Rrup, Vs30, FRV, FNM, T_vec)
 %{
 Gulerce and Abrahamson 2011 ground motion prediction model; citation:
 
@@ -30,30 +30,41 @@ tau_0         = Inter-event (between-event) standard deviation of log of V/H rat
 T_GA2011 = [0.01	0.02	0.029	0.04	0.05	0.075	0.1	0.15	0.2	0.26	0.3	0.4	0.5	0.75	1	1.5	2	3	4	5	7.5	10];
 
 %% Execute GMPE for desired T
-% Check input period
-if ismember(T,[0 -1])
-    % Return output for PGA (g), PGV (cm/sec)
-    [Y, sig_lnY, sig_0, tau_0] = GA_2011_fixedT(M,Rrup,Vs30,FRV,FNM,T);
-elseif T>=min(T_GA2011) && T<=max(T_GA2011)
-    % Determine neighboring periods
-    T_lo = T_GA2011(find(T_GA2011<=T,1,'last'));
-    T_up = T_GA2011(find(T_GA2011>=T,1,'first'));
-    if T_lo==T_up
-        % Input T is an element of T_GA2011
+Y_vec = zeros(size(T_vec));
+sig_lnY_vec = zeros(size(T_vec));
+sig_0_vec = zeros(size(T_vec));
+tau_0_vec = zeros(size(T_vec));
+for ii = 1:length(T_vec)
+    T = T_vec(ii);
+    % Check input period
+    if ismember(T,[0 -1])
+        % Return output for PGA (g), PGV (cm/sec)
         [Y, sig_lnY, sig_0, tau_0] = GA_2011_fixedT(M,Rrup,Vs30,FRV,FNM,T);
+    elseif T>=min(T_GA2011) && T<=max(T_GA2011)
+        % Determine neighboring periods
+        T_lo = T_GA2011(find(T_GA2011<=T,1,'last'));
+        T_up = T_GA2011(find(T_GA2011>=T,1,'first'));
+        if T_lo==T_up
+            % Input T is an element of T_GA2011
+            [Y, sig_lnY, sig_0, tau_0] = GA_2011_fixedT(M,Rrup,Vs30,FRV,FNM,T);
+        else
+            % Determine output for neighboring periods
+            [Y_lo, sig_lnY_lo, sig_0_lo, tau_0_lo] = GA_2011_fixedT(M,Rrup,Vs30,FRV,FNM,T_lo);
+            [Y_up, sig_lnY_up, sig_0_up, tau_0_up] = GA_2011_fixedT(M,Rrup,Vs30,FRV,FNM,T_up);
+            % Linearly interpolate on log scale
+            Y = exp(interp1(log([T_lo T_up]),log([Y_lo Y_up]),log(T)));
+            sig_lnY = interp1(log([T_lo T_up]),[sig_lnY_lo sig_lnY_up],log(T));
+            sig_0 = interp1(log([T_lo T_up]),[sig_0_lo sig_0_up],log(T));
+            tau_0 = interp1(log([T_lo T_up]),[tau_0_lo tau_0_up],log(T));
+        end
     else
-        % Determine output for neighboring periods
-        [Y_lo, sig_lnY_lo, sig_0_lo, tau_0_lo] = GA_2011_fixedT(M,Rrup,Vs30,FRV,FNM,T_lo);
-        [Y_up, sig_lnY_up, sig_0_up, tau_0_up] = GA_2011_fixedT(M,Rrup,Vs30,FRV,FNM,T_up);
-        % Linearly interpolate on log scale
-        Y = exp(interp1(log([T_lo T_up]),log([Y_lo Y_up]),log(T)));
-        sig_lnY = interp1(log([T_lo T_up]),[sig_lnY_lo sig_lnY_up],log(T));
-        sig_0 = interp1(log([T_lo T_up]),[sig_0_lo sig_0_up],log(T));
-        tau_0 = interp1(log([T_lo T_up]),[tau_0_lo tau_0_up],log(T));        
+        disp(['Input period is ' num2str(T,4)]);
+        error('Invalid input period T');
     end
-else
-    disp(['Input period is ' num2str(T,4)]);
-    error('Invalid input period T');
+    Y_vec(ii) = Y;
+    sig_lnY_vec(ii) = sig_lnY;
+    sig_0_vec(ii) = sig_0;
+    tau_0_vec(ii) = tau_0;
 end
 end
 
