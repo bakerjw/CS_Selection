@@ -155,3 +155,105 @@ targetSa.meanAllT = TgtMean;
 targetSa.covAllT  = TgtCovs;
 
 
+%% Revise target spectrum to include V component
+if selectionParams.matchV == 1
+    % GMPE for V component
+    [saV, sigmaV] = gmpeV_bc_2016(rup.M_bar, rup.Rrup, rup.Rjb, rup.Rx, rup.FRV, rup.FNM, rup.dip, rup.Vs30, rup.region, rup.Sj, knownPer, rup.W, rup.Ztor, rup.Z2p5, rup.Zhyp);    
+    
+    % GMPE for V/H ratio
+    [~, sigmaVH] = gmpeVH_ga_2011(rup.M_bar, rup.Rrup, rup.Vs30, rup.FRV, rup.FNM, knownPer);
+    
+    % To save time, only compute correlations at requested periods
+    nPer = length(selectionParams.TgtPer);
+    nPerV = length(selectionParams.TgtPerV);
+    
+    % Track components of GM corresponding to each vibration period    
+    T_allComp = [selectionParams.TgtPer selectionParams.TgtPerV]; % Corresponds to Sa_H(T1), Sa_H(T2), ..., Sa_H(TnPer), Sa_V(Tv1), Sa_V(Tv2), ..., Sa_V(TvnPerV)
+    idComp = [ones(1,nPer)*1 ones(1,nPerV)*3]; % =1 for H1, =2 for H2, =3 for V
+    
+    % Correlation model for H and H
+    rhoHH = zeros(nPer,nPer);
+    for i = 1:nPer
+        for j = 1:nPer
+            rhoHH(i,j) = gmpe_bj_2008_corr(selectionParams.TgtPer(i), selectionParams.TgtPer(j));
+        end
+    end
+    
+    % Correlation model for H and V (or H and V/H combined with H and H)
+    disp('The algorithm slows down as number of target periods for V component increases');
+    rhoHV = zeros(nPer,nPerV);    
+    for i = 1:nPer
+        for j = 1:nPerV
+            sH = sigma(knownPer==selectionParams.TgtPerV(j));
+            rhoHHij = gmpe_bj_2008_corr(selectionParams.TgtPer(i), selectionParams.TgtPerV(j));
+            sVH = sigmaVH(knownPer==selectionParams.TgtPerV(j));
+            rhoHVH = gmpe_ga_2011_corr(selectionParams.TgtPer(i), selectionParams.TgtPerV(j), rup.M_bar, rup.Rrup, rup.Vs30, rup.FRV, rup.FNM);                   
+            sV_derived = sqrt( sH^2 + sVH^2 + 2*sH*sVH*rhoHVH );
+            rhoHV(i,j) =  ( sH*rhoHHij + sVH*rhoHVH ) / sV_derived;
+        end
+    end
+    
+    % Correlation model for V and V
+    rhoVV = zeros(nPerV,nPerV);    
+    for i = 1:nPerV
+        for j = 1:nPerV
+            rhoVV(i,j) = gmpe_gkas_2016_corr(selectionParams.TgtPerV(i), selectionParams.TgtPerV(j), rup.M_bar, rup.Rrup, rup.Rjb, rup.Rx, rup.FRV, rup.FNM, rup.dip, rup.Vs30, rup.region, rup.Sj);
+        end
+    end    
+    
+    % Assemble all covariance matrices
+    cov_H_H = diag(sigma(indPer))*rhoHH*diag(sigma(indPer));
+    cov_H_V = diag(sigma(indPer))*rhoHV*diag(sigmaV(selectionParams.indPerV));
+    cov_V_V = diag(sigmaV(selectionParams.indPerV))*rhoVV*diag(sigmaV(selectionParams.indPerV));
+    COV_allComp = [cov_H_H cov_H_V;
+                   cov_H_V' cov_V_V];
+               
+    % Compute target spectrum
+    if selectionParams.cond == 1
+        % Revise targetSa.meanReq
+        TgtMeanV = log(saV(selectionParams.indPerV)) + sigmaV(selectionParams.indPerV).*eps_bar.*rhoHV(selectionParams.indTcond,:); % CMS for V component
+        targetSa.meanReq = [TgtMean(indPer) TgtMeanV];        
+        
+        % Revise targetSa.covReq
+        % Partition based on conditioning period
+        idC = T_allComp==selectionParams.Tcond & idComp==1; % Find entry corresponding to Sa(T*) for H component
+        COV_cc = COV_allComp(idC,idC);
+        COV_sc = COV_allComp(~idC,idC);
+        COV_ss = COV_allComp(~idC,~idC);
+        % Compute condtional covariance matrix
+        COVtilde_s = COV_ss - (COV_sc/COV_cc)*COV_sc';
+        covReq = zeros(length(T_allComp),length(T_allComp));
+        covReq(idC,idC) = 0;
+        covReq(~idC,~idC) = COVtilde_s;         
+    else
+        % Revise targetSa.meanReq
+        targetSa.meanReq = log([sa(indPer) saV(selectionParams.indPerV)]);
+        
+        % Revise targetSa.covReq
+        covReq = COV_allComp; % Delay saving into targetSa until finalized 
+    end
+    
+    % Overwrite covariance matrix with zeros if no variance is desired
+    if selectionParams.useVar == 0
+        covReq = zeros(size(covReq));
+    end
+    
+    % Find covariance values of zero and set them to a small number so that
+    % random number generation can be performed
+    covReq( abs(covReq)<1e-10 ) = 1e-10;
+    
+    % Ensure positive definiteness of covariance matrix so random number
+    % generation can be performed
+    [~,PDflag] = chol(covReq);
+    if PDflag~=0
+        targetSa.covReqOrig = covReq; % Save original covariance matrix
+        covReq = nearestSPD(covReq);
+        disp(char({'Nearest positive definite covariance matrix computed...';...
+            ['The max discrepancy between covariance matrices = '...
+            num2str(max(max(abs(covReq-targetSa.covReqOrig))),3)]})); % output result for user verification
+    end
+    
+    % Store covariance matrix and standard deviations at target periods
+    targetSa.covReq = covReq;
+    targetSa.stdevs = sqrt(diag(targetSa.covReq))';   
+end

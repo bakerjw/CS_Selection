@@ -13,7 +13,7 @@ metadata.dirLocation = dirLocation;
 % and can be added here if desired 
 % Note: These lines should be modified if using the BBP_EXSIM_meta_data.mat
 % database file. See documentation for more details.
-if selectionParams.arb == 1 % single-component selection -- treat each component as a seaparate candidate
+if selectionParams.arb == 1 && selectionParams.matchV ~= 1 % single-component selection -- treat each component as a seaparate candidate
     if isempty(Sa_2) % if 2nd component doesn't exist (e.g., EXSIM data)
         metadata.Filename    = Filename_1;
         metadata.compNum     = [ones(size(magnitude))];
@@ -28,9 +28,10 @@ if selectionParams.arb == 1 % single-component selection -- treat each component
         soil_Vs30   = [soil_Vs30; soil_Vs30];
         magnitude   = [magnitude; magnitude];
         closest_D   = [closest_D; closest_D];
+        NGA_num     = [NGA_num; NGA_num];
         metadata.dirLocation = [dirLocation; dirLocation];
     end
-else % two-component selection
+elseif selectionParams.arb == 2 && selectionParams.matchV ~= 1 % two-component selection
     metadata.Filename    = [Filename_1 Filename_2];
     metadata.dirLocation = dirLocation;
     metadata.recNum      = [1:length(magnitude)];
@@ -44,6 +45,21 @@ else % two-component selection
         % optionally use the geometric mean of the single-component Sa's:
         % SaKnown = sqrt(Sa_1.*Sa_2);
     end
+else
+    metadata.Filename    = [Filename_1 Filename_2 Filename_vert];
+    metadata.dirLocation = dirLocation;
+    metadata.recNum      = [1:length(magnitude)];
+    if selectionParams.RotD == 50 && exist('Sa_RotD50')
+        SaKnown     = Sa_RotD50;
+    elseif selectionParams.RotD == 100 && exist('Sa_RotD100')
+        SaKnown     = Sa_RotD100;
+    else
+        display(['Error--RotD' num2str(RotD) ' not provided in database'])
+        % If data corresponding to user input RotD value does not exist,
+        % optionally use the geometric mean of the single-component Sa's:
+        % SaKnown = sqrt(Sa_1.*Sa_2);
+    end
+    SaKnownV     = Sa_vert;
 end
 
 %% Arrange available spectra in usable format and check for invalid values
@@ -72,17 +88,43 @@ selectionParams.TgtPer = knownPer(indPer);
 % Identify the index of Tcond within TgtPer 
 [~, selectionParams.indTcond] = min(abs(selectionParams.TgtPer - selectionParams.Tcond));
 
+% If selecting V components, revise TgtPerV
+if selectionParams.matchV == 1 
+    if selectionParams.cond == 1 && ~any(selectionParams.TgtPerV == selectionParams.Tcond)
+        selectionParams.TgtPerV = sort([selectionParams.TgtPerV selectionParams.Tcond]);
+    end
+    indPerV = zeros(length(selectionParams.TgtPerV),1);
+    for i=1:length(selectionParams.TgtPerV)
+        [~ , indPerV(i)] = min(abs(knownPer - selectionParams.TgtPerV(i)));
+    end
+    indPerV = unique(indPerV);
+    selectionParams.TgtPerV = knownPer(indPerV);
+end
+
 %% Screen the records to be considered
-recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
+% If selecting V components, ensure that each of remaining records contains all 3 components
+if selectionParams.matchV == 1
+    recValidSa = ~any(Sa_1==-999,2) & ~any(Sa_2==-999,2) & ~any(ismember(Sa_vert,[-999 inf]),2);
+else
+    recValidSa = ~all(SaKnown == -999,2); % remove invalid inputs
+end
 recValidSoil = soil_Vs30 > allowedRecs.Vs30(1) & soil_Vs30 < allowedRecs.Vs30(2);
 recValidMag =  magnitude > allowedRecs.Mag(1)  & magnitude < allowedRecs.Mag(2);
 recValidDist = closest_D > allowedRecs.D(1)    & closest_D < allowedRecs.D(2);
+recValidNGA = ~ismember(NGA_num,allowedRecs.NGAinvalid);
 
 % flag indicies of allowable records that will be searched
-metadata.allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa); 
+metadata.allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa & recValidNGA); 
 
 % resize SaKnown to include only allowed records
-SaKnown = SaKnown(metadata.allowedIndex,idxPer);       
+SaKnown = SaKnown(metadata.allowedIndex,idxPer);
+
+% If selecting V components, save new variables in selectionParams
+if selectionParams.matchV == 1
+    SaKnownV = SaKnownV(metadata.allowedIndex,idxPer);
+    selectionParams.SaKnownV = SaKnownV;
+    selectionParams.indPerV = indPerV;
+end
 
 % count number of allowed spectra
 selectionParams.nBig = length(metadata.allowedIndex);  

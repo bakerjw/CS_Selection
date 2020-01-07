@@ -46,13 +46,25 @@
 %           .penalty    : >0 to penalize selected spectra more than 
 %                         3 sigma from the target at any period, 
 %                         =0 otherwise.
-%          . weights    : [Weights for error in mean, standard deviation 
+%           .weights    : [Weights for error in mean, standard deviation 
 %                         and skewness] e.g., [1.0,2.0 0.3] 
 %           .nLoop      : Number of loops of optimization to perform.
 %           .nBig       : The number of spectra that will be searched
 %           .indTcond   : Index of Tcond, the conditioning period
 %           .recID      : Vector of index values for the selected
 %                         spectra
+%           .matchV     : =1 to include vertical (V) components of ground
+%                         motion in the selection process
+%           .TminV      : Shortest vibration period of interest for V
+%                         component (applies only when matchV=1)
+%           .TmaxV      : Longest vibration period of interest for V
+%                         component (applies only when matchV=1)
+%           .weightV    : Weight specifying importance of V component
+%                         relative to H components (applies only when
+%                         matchV=1)
+%           .sepScaleV  : =1 to compute separate scale factor for V
+%                         components via corresponding target spectrum
+%                         (applies only when matchV=1)
 % 
 % rup                   :  A structure with parameters that specify the rupture scenario
 %                          for the purpose of evaluating a GMPE. Here we
@@ -105,8 +117,8 @@
 
 %% User inputs begin here
 % Ground motion database and type of selection 
-% selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
-selectionParams.databaseFile    = 'BBP_GP_meta_data'; 
+selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
+% selectionParams.databaseFile    = 'BBP_GP_meta_data'; 
 selectionParams.cond            = 1;
 selectionParams.arb             = 2; 
 selectionParams.RotD            = 50; 
@@ -116,14 +128,22 @@ selectionParams.nGM        = 30;  % number of ground motions to be selected
 selectionParams.Tcond      = 1.5; % Period at which spectra should be scaled and matched 
 selectionParams.Tmin       = 0.1; % smallest spectral period of interest
 selectionParams.Tmax       = 10;  % largest spectral period of interest
-
-selectionParams.SaTcond    = 0.3;   % (optional) target Sa(Tcond) to use when 
+selectionParams.TgtPer = logspace(log10(selectionParams.Tmin),log10(selectionParams.Tmax),30); % compute an array of periods between Tmin and Tmax
+selectionParams.SaTcond    = [];   % (optional) target Sa(Tcond) to use when 
                                   % computing a conditional spectrum 
                                   % if a value is provided here, rup.eps_bar 
                                   % will be back-computed in
                                   % get_target_spectrum.m. If this =[], the
                                   % rup.eps_bar value specified below will
                                   % be used
+
+% Parameters related to (optional) selection of vertical spectra
+selectionParams.matchV          = 1; % =1 to do selection and scaling while matching a vertical spectrum, =0 to not
+selectionParams.TminV           = 0.01; % smallest vertical spectral period of interest
+selectionParams.TmaxV           = 10;  % largest vertical spectral period of interest
+selectionParams.weightV         = 0.5;  % weight on vertical spectral match versus horizontal
+selectionParams.sepScaleV       = 1;  % =1 to scale vertical components separately from horizontal, =0 to have same scale factor for each
+selectionParams.TgtPerV = logspace(log10(selectionParams.TminV),log10(selectionParams.TmaxV),20); % compute an array of periods between Tmin and Tmax
 
 % other parameters to scale motions and evaluate selections 
 selectionParams.isScaled   = 1;       
@@ -151,11 +171,27 @@ rup.Fault_Type  = 1;        % =0 for unspecified fault
                             % =1 for strike-slip fault
                             % =2 for normal fault
                             % =3 for reverse fault
-                        
+
+% Additional seismological parameters as inputs to GMPE by Bozorgnia and Campbell 2016 for V component                        
+rup.Rrup        = 11;       % closest distance to rupture plane (km)
+rup.Rx          = 11;       % horizontal distance to vertical surface projection of the top edge of rupture plane, measured perpendicular to the strike (km)       
+rup.W           = 15;       % down-dip rupture width (km)  
+rup.Ztor        = 0;        % depth to top of rupture (km)  
+rup.Zbot        = 15;       % depth to bottom of seismogenic crust (km)  
+rup.dip         = 90;       % fault dip angle (deg)  
+rup.lambda      = 0;        % rake angle (deg)  
+rup.Fhw         = 0;        % flag for hanging wall 
+rup.Z2p5        = 1;        % depth to Vs=2.5 km/sec (km)  
+rup.Zhyp        = 10;       % hypocentral depth of earthquake, measured from sea level (km)                              
+rup.FRV         = 0;        % flag for reverse and reverse-oblique faulting
+rup.FNM         = 0;        % flag for normal and normal-oblique faulting
+rup.Sj          = 0;        % flag for regional site effects; =1 for Japan sites and =0 otherwise
+
 % Ground motion properties to require when selecting from the database. 
 allowedRecs.Vs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
 allowedRecs.Mag  = [ 6 7 ];     % upper and lower bound of allowable magnitude values
 allowedRecs.D    = [0 50];     % upper and lower bound of allowable distance values
+allowedRecs.NGAinvalid = [4577:4839 6993:8055 9194]; % Exclude NGA Record Sequence Numbers (RSNs) from consideration for various reasons (e.g., bc cannot retrieve time series for these from PEER website)
 
 % Miscellaneous other inputs
 showPlots   = 1;        % =1 to plot results, =0 to suppress plots
@@ -172,16 +208,16 @@ outputFile  = 'Output_File.dat'; % File name of the summary output file
 % User inputs end here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load the specified ground motion database and screen for suitable motions
-
-selectionParams.TgtPer = logspace(log10(selectionParams.Tmin),log10(selectionParams.Tmax),30); % compute an array of periods between Tmin and Tmax
-
 % Load and screen the database
 [SaKnown, selectionParams, indPer, knownPer, metadata] = screen_database(selectionParams, allowedRecs );
 
-IMs.sampleBig = log(SaKnown(:,indPer));  % save the logarithmic spectral accelerations at target periods
+% Save the logarithmic spectral accelerations at target periods
+IMs.sampleBig = log(SaKnown(:,indPer));  
+if selectionParams.matchV == 1
+    IMs.sampleBigV = log(selectionParams.SaKnownV(:,selectionParams.indPerV));
+end
 
 %% Compute target means and covariances of spectral values 
-
 % Compute target mean and covariance at all periods in the database
 targetSa = get_target_spectrum(knownPer, selectionParams, indPer, rup);
                                                                            
@@ -192,27 +228,50 @@ selectionParams.lnSa1 = targetSa.meanReq(selectionParams.indTcond);
 simulatedSpectra = simulate_spectra(targetSa, selectionParams, seedValue, nTrials);
 
 %% Find best matches to the simulated spectra from ground-motion database
-IMs = find_ground_motions( selectionParams, simulatedSpectra, IMs );
+if selectionParams.matchV == 1
+    IMs = find_ground_motionsV( selectionParams, simulatedSpectra, IMs );
+else
+    IMs = find_ground_motions( selectionParams, simulatedSpectra, IMs );
+end
 
 % Store the means and standard deviations of the originally selected ground motions 
 IMs.stageOneScaleFac =  IMs.scaleFac;
 IMs.stageOneMeans = mean(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
-IMs.stageOneStdevs= std(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
+IMs.stageOneStdevs = std(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
+if selectionParams.matchV == 1
+    IMs.stageOneScaleFacV =  IMs.scaleFacV;
+    IMs.stageOneMeansV = mean(log(selectionParams.SaKnownV(IMs.recID,:).*repmat(IMs.stageOneScaleFacV,1,size(selectionParams.SaKnownV,2))));
+    IMs.stageOneStdevsV = std(log(selectionParams.SaKnownV(IMs.recID,:).*repmat(IMs.stageOneScaleFacV,1,size(selectionParams.SaKnownV,2))));
+end
 
 %% Further optimize the ground motion selection, if needed
-
-% check errors versus tolerances to see whether optimization is needed
-if within_tolerance(IMs.sampleSmall, targetSa, selectionParams)
-    fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
-    display(['Error metric of ' num2str(devTotal,2) ' is within tolerance, skipping optimization']);
-else % run optimization
-    IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
-    % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
+if selectionParams.matchV == 1
+    % check errors versus tolerances to see whether optimization is needed
+    [ withinTol, IMs ] = within_toleranceV(IMs, targetSa, selectionParams);
+    if withinTol == 1
+        fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
+        disp(['Median error of ' num2str(IMs.medianErr,2) ' and std dev error of ' num2str(IMs.stdErr,2) ' are within tolerance, skipping optimization']);
+    else % run optimization
+        IMs = optimize_ground_motionsV(selectionParams, targetSa, IMs);
+    end
+else
+    % check errors versus tolerances to see whether optimization is needed
+    if within_tolerance(IMs.sampleSmall, targetSa, selectionParams)
+        fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
+        display(['Error metric of ' num2str(devTotal,2) ' is within tolerance, skipping optimization']);
+    else % run optimization
+        IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
+        % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
+    end
 end
 
 %% Plot results, if desired
 if showPlots
-    plot_results(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
+    if selectionParams.matchV == 1
+        plot_resultsV(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
+    else
+        plot_results(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
+    end
 end
  
 %% Output results to a text file 
