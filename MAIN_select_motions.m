@@ -117,8 +117,8 @@
 
 %% User inputs begin here
 % Ground motion database and type of selection 
-% selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
-selectionParams.databaseFile    = 'BBP_GP_meta_data'; 
+selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
+% selectionParams.databaseFile    = 'BBP_GP_meta_data'; 
 selectionParams.cond            = 1;
 selectionParams.arb             = 2; 
 selectionParams.RotD            = 50; 
@@ -191,6 +191,7 @@ rup.Sj          = 0;        % flag for regional site effects; =1 for Japan sites
 allowedRecs.Vs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
 allowedRecs.Mag  = [ 6 7 ];     % upper and lower bound of allowable magnitude values
 allowedRecs.D    = [0 50];     % upper and lower bound of allowable distance values
+allowedRecs.NGAinvalid = [4577:4839 6993:8055 9194]; % Exclude NGA Record Sequence Numbers (RSNs) from consideration for various reasons (e.g., bc cannot retrieve time series for these from PEER website)
 
 % Miscellaneous other inputs
 showPlots   = 1;        % =1 to plot results, =0 to suppress plots
@@ -212,6 +213,9 @@ outputFile  = 'Output_File.dat'; % File name of the summary output file
 
 % Save the logarithmic spectral accelerations at target periods
 IMs.sampleBig = log(SaKnown(:,indPer));  
+if selectionParams.matchV == 1
+    IMs.sampleBigV = log(selectionParams.SaKnownV(:,selectionParams.indPerV));
+end
 
 %% Compute target means and covariances of spectral values 
 
