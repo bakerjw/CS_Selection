@@ -245,14 +245,24 @@ if selectionParams.matchV == 1
 end
 
 %% Further optimize the ground motion selection, if needed
-
-% check errors versus tolerances to see whether optimization is needed
-if within_tolerance(IMs.sampleSmall, targetSa, selectionParams)
-    fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
-    display(['Error metric of ' num2str(devTotal,2) ' is within tolerance, skipping optimization']);
-else % run optimization
-    IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
-    % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
+if selectionParams.matchV == 1
+    % check errors versus tolerances to see whether optimization is needed
+    [ withinTol, IMs ] = within_toleranceV(IMs, targetSa, selectionParams);
+    if withinTol == 1
+        fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
+        disp(['Median error of ' num2str(IMs.medianErr,2) ' and std dev error of ' num2str(IMs.stdErr,2) ' are within tolerance, skipping optimization']);
+    else % run optimization
+        IMs = optimize_ground_motionsV(selectionParams, targetSa, IMs);
+    end
+else
+    % check errors versus tolerances to see whether optimization is needed
+    if within_tolerance(IMs.sampleSmall, targetSa, selectionParams)
+        fprintf('Greedy optimization was skipped based on user input tolerance. \n \n');
+        display(['Error metric of ' num2str(devTotal,2) ' is within tolerance, skipping optimization']);
+    else % run optimization
+        IMs = optimize_ground_motions(selectionParams, targetSa, IMs);
+        % IMs = optimize_ground_motions_par(selectionParams, targetSa, IMs); % a version of the optimization function that uses parallel processing
+    end
 end
 
 %% Plot results, if desired
