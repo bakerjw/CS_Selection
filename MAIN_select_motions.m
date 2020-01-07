@@ -228,12 +228,21 @@ selectionParams.lnSa1 = targetSa.meanReq(selectionParams.indTcond);
 simulatedSpectra = simulate_spectra(targetSa, selectionParams, seedValue, nTrials);
 
 %% Find best matches to the simulated spectra from ground-motion database
-IMs = find_ground_motions( selectionParams, simulatedSpectra, IMs );
+if selectionParams.matchV == 1
+    IMs = find_ground_motionsV( selectionParams, simulatedSpectra, IMs );
+else
+    IMs = find_ground_motions( selectionParams, simulatedSpectra, IMs );
+end
 
 % Store the means and standard deviations of the originally selected ground motions 
 IMs.stageOneScaleFac =  IMs.scaleFac;
 IMs.stageOneMeans = mean(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
-IMs.stageOneStdevs= std(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
+IMs.stageOneStdevs = std(log(SaKnown(IMs.recID,:).*repmat(IMs.stageOneScaleFac,1,size(SaKnown,2))));
+if selectionParams.matchV == 1
+    IMs.stageOneScaleFacV =  IMs.scaleFacV;
+    IMs.stageOneMeansV = mean(log(selectionParams.SaKnownV(IMs.recID,:).*repmat(IMs.stageOneScaleFacV,1,size(selectionParams.SaKnownV,2))));
+    IMs.stageOneStdevsV = std(log(selectionParams.SaKnownV(IMs.recID,:).*repmat(IMs.stageOneScaleFacV,1,size(selectionParams.SaKnownV,2))));
+end
 
 %% Further optimize the ground motion selection, if needed
 
@@ -248,7 +257,11 @@ end
 
 %% Plot results, if desired
 if showPlots
-    plot_results(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
+    if selectionParams.matchV == 1
+        plot_resultsV(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
+    else
+        plot_results(selectionParams, targetSa, IMs, simulatedSpectra, SaKnown, knownPer )
+    end
 end
  
 %% Output results to a text file 
