@@ -7,6 +7,9 @@ Further documentation can be found in the following paper:
 
 Baker, J. W., and Lee, C. (2018). “An Improved Algorithm for Selecting Ground Motions to Match a Conditional Spectrum.” Journal of Earthquake Engineering, 22(4), 708–723.
 
+Vertical component selection was added in 2020, and is documented in
+
+Kwong, N. S., Jaiswal, K. S., Luco, N., and Baker, J. W. (2020). “Selecting three components of ground motions from conditional spectra for multiple stripe analyses.” 17th World Conference on Earthquake Engineering, Sendai, Japan.
 
 
 ## Potential features to be included in the future:
