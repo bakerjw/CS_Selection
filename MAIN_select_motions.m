@@ -138,7 +138,7 @@ selectionParams.SaTcond    = [];   % (optional) target Sa(Tcond) to use when
                                   % be used
 
 % Parameters related to (optional) selection of vertical spectra
-selectionParams.matchV          = 1; % =1 to do selection and scaling while matching a vertical spectrum, =0 to not
+selectionParams.matchV          = 0; % =1 to do selection and scaling while matching a vertical spectrum, =0 to not
 selectionParams.TminV           = 0.01; % smallest vertical spectral period of interest
 selectionParams.TmaxV           = 10;  % largest vertical spectral period of interest
 selectionParams.weightV         = 0.5;  % weight on vertical spectral match versus horizontal
@@ -191,11 +191,12 @@ rup.Sj          = 0;        % flag for regional site effects; =1 for Japan sites
 allowedRecs.Vs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
 allowedRecs.Mag  = [ 6 7 ];     % upper and lower bound of allowable magnitude values
 allowedRecs.D    = [0 50];     % upper and lower bound of allowable distance values
-allowedRecs.NGAinvalid = [4577:4839 6993:8055 9194]; % Exclude NGA Record Sequence Numbers (RSNs) from consideration for various reasons (e.g., bc cannot retrieve time series for these from PEER website)
+allowedRecs.idxInvalid = []; % Index numbers of ground motions to be excluded from consideration for selection 
+% allowedRecs.idxInvalid = [4577:4839 6993:8055 9194]; % A list of NGA-West2 records that cannot be retrieved from the PEER website, and so may be preferable to exclude
 
 % Miscellaneous other inputs
 showPlots   = 1;        % =1 to plot results, =0 to suppress plots
-copyFiles   = 0;        % =1 to copy selected motions to a local directory, 
+copyFiles   = 1;        % =1 to copy selected motions to a local directory, 
                         % otherwise =0 to suppress plots
 seedValue   = 0;        % =0 for random seed in when simulating 
                         % response spectra for initial matching, 
@@ -281,5 +282,5 @@ write_output(recIdx, IMs, outputDir, outputFile, metadata)
 
 %% Copy time series to the working directory, if desired and possible
 if copyFiles
-    download_time_series(outputDir, recIdx, Filename, dirLocation)
+    download_time_series(outputDir, recIdx, metadata)
 end
