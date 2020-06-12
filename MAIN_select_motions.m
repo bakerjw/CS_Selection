@@ -7,12 +7,13 @@
 % ground motion databases are provided to search in. Further details are
 % provided in the following documents:
 %
-%   Baker, J.W. and Lee, C. (2016). An Improved Algorithm for Selecting 
-%   Ground Motions to Match a Conditional Spectrum, Journal of Earthquake 
-%   Engineering, (in press).
+%   Baker, J. W., and Lee, C. (2018). ?An Improved Algorithm for Selecting 
+%   Ground Motions to Match a Conditional Spectrum.? Journal of Earthquake 
+%   Engineering, 22(4), 708?723.
 %
 % Version 1.0 created by Nirmal Jayaram, Ting Lin and Jack Baker, Official release 7 June, 2010 
 % Version 2.0 created by Cynthia Lee and Jack Baker, last updated, 23 August, 2016
+% Updated 6/12/2020 by Jack Baker to include new CyberShake ground motion data
 %
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,7 +118,8 @@
 
 %% User inputs begin here
 % Ground motion database and type of selection 
-selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
+selectionParams.databaseFile    = 'CyberShake_meta_data'; 
+% selectionParams.databaseFile    = 'NGA_W2_meta_data'; 
 % selectionParams.databaseFile    = 'BBP_GP_meta_data'; 
 selectionParams.cond            = 1;
 selectionParams.arb             = 2; 

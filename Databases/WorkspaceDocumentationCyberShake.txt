@@ -1,0 +1,29 @@
+Documentation of the workspace 'CyberShake_meta_data.mat'
+
+This workspace has been created based on selected ground motions from the SCEC CyberShake platform. For details on the ground motion selection, see:
+
+Baker, J. W., Goulet, C., Luco, N., Rezaeian, S., and Teng, G. (2020). “A Subset of CyberShake Ground Motion Time Series for Response History Analysis.” Earthquake Spectra, (in review).
+
+ 
+Variables available in the workspace: 
+ 
+Filename_1        : Filename of the time history data file in 				    direction 1
+Filename_2        : Filename of the time history data file in 				    direction 2
+dirLocation       : location of relavant directory in the archive
+Periods           : Periods at which spectral accelerations have 				    been computed and stored in the workspace
+Sa_1              : Spectral acceleration in direction 1
+Sa_2              : Spectral acceleration in direction 2
+Sa_RotD100        : Orientation independent two-component 					    spectral acceleration
+Sa_RotD50         : Orientation independent two-component 					    spectral acceleration
+closest_D         : Closest distance to the ruptured area
+magnitude         : Magnitude
+Site_Name		  : CyberShake site name
+Site_Short_Name   : CyberShake site short name
+soil_Vs30         : Vs30 value 
+Source_Name	      : seismic source name
+
+Additional ground motion metadata is available in the summaryTable.csv file in the archive described below.
+
+To access the associated ground motions, you should first download the ground motion .zip file from https://doi.org/10.5281/zenodo.3875541. Then move the .zip file to the folder  where the Matlab code is located (one directory up from where this documentation file is), and extract it there. 
+
+Then, when you set 'copyFiles = 1' in the main script, the software will know where to look for the ground motion time series.

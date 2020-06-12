@@ -18,7 +18,7 @@ if selectionParams.arb == 1 && selectionParams.matchV ~= 1 % single-component se
         metadata.Filename    = Filename_1;
         metadata.compNum     = [ones(size(magnitude))];
         metadata.dirLocation = dirLocation;
-        metadata.recNum      = [1:length(magnitude)];
+        metadata.recNum      = [1:length(magnitude)]';
         SaKnown              = Sa_1;
     else % 2nd component exists
         metadata.Filename    = [Filename_1; Filename_2];
@@ -34,7 +34,7 @@ if selectionParams.arb == 1 && selectionParams.matchV ~= 1 % single-component se
 elseif selectionParams.arb == 2 && selectionParams.matchV ~= 1 % two-component selection
     metadata.Filename    = [Filename_1 Filename_2];
     metadata.dirLocation = dirLocation;
-    metadata.recNum      = [1:length(magnitude)];
+    metadata.recNum      = [1:length(magnitude)]';
     if selectionParams.RotD == 50 && exist('Sa_RotD50')
         SaKnown     = Sa_RotD50;
     elseif selectionParams.RotD == 100 && exist('Sa_RotD100')
@@ -111,10 +111,11 @@ end
 recValidSoil = soil_Vs30 > allowedRecs.Vs30(1) & soil_Vs30 < allowedRecs.Vs30(2);
 recValidMag =  magnitude > allowedRecs.Mag(1)  & magnitude < allowedRecs.Mag(2);
 recValidDist = closest_D > allowedRecs.D(1)    & closest_D < allowedRecs.D(2);
-recValidNGA = ~ismember(NGA_num,allowedRecs.NGAinvalid);
+
+recValidIdx = ~ismember(metadata.recNum,allowedRecs.idxInvalid);
 
 % flag indicies of allowable records that will be searched
-metadata.allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa & recValidNGA); 
+metadata.allowedIndex = find(recValidSoil & recValidMag & recValidDist & recValidSa & recValidIdx); 
 
 % resize SaKnown to include only allowed records
 SaKnown = SaKnown(metadata.allowedIndex,idxPer);
