@@ -191,7 +191,7 @@ rup.Sj          = 0;        % flag for regional site effects; =1 for Japan sites
 
 % Ground motion properties to require when selecting from the database. 
 allowedRecs.Vs30 = [-Inf Inf];     % upper and lower bound of allowable Vs30 values 
-allowedRecs.Mag  = [ 6 7 ];     % upper and lower bound of allowable magnitude values
+allowedRecs.Mag  = [ 6 8.2 ];     % upper and lower bound of allowable magnitude values
 allowedRecs.D    = [0 50];     % upper and lower bound of allowable distance values
 allowedRecs.idxInvalid = []; % Index numbers of ground motions to be excluded from consideration for selection 
 % allowedRecs.idxInvalid = [4577:4839 6993:8055 9194]; % A list of NGA-West2 records that cannot be retrieved from the PEER website, and so may be preferable to exclude
