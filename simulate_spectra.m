@@ -3,9 +3,9 @@ function [ simulatedSpectra ] = simulate_spectra( targetSa, selectionParams, see
 
 % Set initial seed for simulation
 if seedValue ~= 0
-    rng(seedValue); 
+    rng(seedValue,'twister'); 
 else
-    rng('shuffle');
+    rng('shuffle','twister');
 end
 
 % Generate simulated response spectra with best matches to the target values
