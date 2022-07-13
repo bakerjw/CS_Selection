@@ -75,7 +75,6 @@ set(findall(gcf,'-property','FontSize'),'FontSize', figureFontSize)
 
 % Compute sample correlations from selected spectra
 selectedSa = log(SaKnown(IMs.recID,:).*repmat(IMs.scaleFac,1,size(SaKnown,2)));
-selectedSa = [selectedSa(:,knownPer<selectionParams.Tcond) interp1(knownPer,selectedSa',selectionParams.Tcond)' selectedSa(:,knownPer>selectionParams.Tcond)];
 selectedCorr = corrcoef(selectedSa);
 
 % Calculate target correlations using the target covariance matrix
